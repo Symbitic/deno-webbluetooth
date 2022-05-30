@@ -1,0 +1,68 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  build:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - name: "Linux"
+            os: ubuntu-latest
+          - name: "macOS"
+            os: macos-latest
+          - name: "Windows"
+            os: windows-latest
+            environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
+            arch: win64_mingw81
+
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v1
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@main
+        with:
+          deno-version: 'v1.x'
+
+      - name: Setup CMake
+        uses: symbitic/install-cmake@master
+
+      - name: Configure build environment
+        if: startsWith(matrix.config.os, 'windows')
+        run: |
+          call "${{ matrix.config.environment_script }}"
+        shell: cmd
+
+      - name: Build
+        run: deno run -A --unstable ./build.ts
+
+      - name: Upload (Windows)
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/') && startsWith(matrix.config.os, 'windows')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: build/simpleble-c.dll
+
+      - name: Upload (macOS)
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/') && startsWith(matrix.config.os, 'macos')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: build/libsimpleble-c.dylib
+
+      - name: Upload (Linux)
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/') && startsWith(matrix.config.os, 'ubuntu')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: build/libsimpleble-c.so

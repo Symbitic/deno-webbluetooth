@@ -1,0 +1,10 @@
+*.log
+.cache
+.DS_Store
+*bak
+.history
+.temp/
+.vscode/
+temp/
+build/
+c_cpp_properties.json
