@@ -34,6 +34,10 @@ jobs:
       - name: Setup CMake
         uses: symbitic/install-cmake@master
 
+      - name: Install DBus
+        run: sudo apt-get install -y libdbus-1-dev
+        if: startsWith(matrix.config.os, 'ubuntu')
+
       - name: Configure build environment
         if: startsWith(matrix.config.os, 'windows')
         run: |
