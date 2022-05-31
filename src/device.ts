@@ -48,10 +48,10 @@ export class BluetoothDevice extends EventTarget implements IBluetoothDevice {
   }
 
   watchAdvertisements(): Promise<void> {
-    throw new Error("watchAdvertisements error: method not implemented");
+    throw new Error("watchAdvertisements error: not implemented yet");
   }
 
   unwatchAdvertisements(): Promise<void> {
-    throw new Error("unwatchAdvertisements error: method not implemented");
+    throw new Error("unwatchAdvertisements error: not implemented yet");
   }
 }

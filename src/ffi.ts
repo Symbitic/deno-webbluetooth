@@ -226,7 +226,7 @@ export function simpleble_peripheral_manufacturer_data_get(
   handle: Peripheral,
   index: number,
 ): ManufacturerData | undefined {
-  const struct = new Uint8Array(MANUFACTURER_SIZE);
+  const struct = new Uint8Array(MANUFACTURER_SIZE + 1);
   const view = new DataView(struct.buffer);
 
   const err = lib.symbols.simpleble_peripheral_manufacturer_data_get(
@@ -239,7 +239,7 @@ export function simpleble_peripheral_manufacturer_data_get(
   const id = view.getUint16(0, true);
   const dataLength = Number(view.getBigUint64(8, true));
   if (dataLength > 24) {
-    throw new Error("Invalid data length");
+    //throw new Error("Invalid data length");
   }
 
   const data = dataLength > 0

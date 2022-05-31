@@ -156,7 +156,7 @@ export interface RequestDeviceOptions {
   /** Select which device to return */
   deviceFound: (device: RequestDeviceInfo) => boolean;
   /** Scanning timeout (5 seconds by default) */
-  timeout: number;
+  timeout?: number;
 }
 
 /**

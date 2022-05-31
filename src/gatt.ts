@@ -91,7 +91,7 @@ export class BluetoothRemoteGATTCharacteristic extends EventTarget
       this.uuid,
     );
     if (!buffer) {
-      return Promise.reject("Error reading value");
+      throw new Error("Error reading value");
     }
     const view = new DataView(buffer);
     this.setValue(view, true);
@@ -107,7 +107,7 @@ export class BluetoothRemoteGATTCharacteristic extends EventTarget
       data,
     );
     if (!ret) {
-      return Promise.reject("writeValueWithResponse error: command failed");
+      throw new Error("writeValueWithResponse error: command failed");
     }
     const view = new DataView(value);
     this.setValue(view, false);
@@ -123,7 +123,7 @@ export class BluetoothRemoteGATTCharacteristic extends EventTarget
       data,
     );
     if (!ret) {
-      return Promise.reject("writeValueWithoutResponse error: request failed");
+      throw new Error("writeValueWithoutResponse error: request failed");
     }
     const view = new DataView(value);
     this.setValue(view, false);
@@ -187,13 +187,13 @@ export class BluetoothRemoteGATTService extends EventTarget
     uuid: string,
   ): Promise<IBluetoothRemoteGATTCharacteristic> {
     if (!this.device.gatt.connected) {
-      return Promise.reject("getCharacteristic error: device not connected");
+      throw new Error("getCharacteristic error: device not connected");
     } else if (!uuid) {
-      return Promise.reject("getCharacteristic error: no characteristic given");
+      throw new Error("getCharacteristic error: no characteristic given");
     }
     const chars = await this.getCharacteristics(uuid);
     if (chars.length === 0) {
-      return Promise.reject(
+      throw new Error(
         "getCharacteristic error: characteristic not found",
       );
     }
@@ -204,7 +204,7 @@ export class BluetoothRemoteGATTService extends EventTarget
     uuid?: string,
   ): Promise<IBluetoothRemoteGATTCharacteristic[]> {
     if (!this.device.gatt.connected) {
-      return Promise.reject("getCharacteristics error: device not connected");
+      throw new Error("getCharacteristics error: device not connected");
     }
     const chars: IBluetoothRemoteGATTCharacteristic[] = [];
     for (const char of this._service.characteristics) {
@@ -252,13 +252,15 @@ export class BluetoothRemoteGATTServer extends EventTarget
   connect(): Promise<IBluetoothRemoteGATTServer> {
     const ret = simpleble_peripheral_connect(this._peripheral);
     if (!ret) {
-      return Promise.reject("connect failed: device refused to connect");
+      throw new Error("connect failed: device refused to connect");
     }
+    this._connected = true;
     return Promise.resolve(this);
   }
 
   disconnect(): void {
     const ret = simpleble_peripheral_disconnect(this._peripheral);
+    this._connected = false;
     if (!ret) {
       throw new Error("disconnect failed: unknown error");
     }
@@ -266,7 +268,7 @@ export class BluetoothRemoteGATTServer extends EventTarget
 
   async getPrimaryService(uuid: string): Promise<IBluetoothRemoteGATTService> {
     if (!uuid) {
-      return Promise.reject("getPrimaryService error: no service given");
+      throw new Error("getPrimaryService error: no service given");
     }
     const services = await this.getPrimaryServices(uuid);
     if (services.length === 0) {

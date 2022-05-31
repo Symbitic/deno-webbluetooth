@@ -21,7 +21,7 @@ import type {
   IBluetoothDevice,
   RequestDeviceOptions,
 } from "./interfaces.ts";
-import type { Adapter, Peripheral } from "./ffi.ts";
+import type { Adapter } from "./ffi.ts";
 
 export class Bluetooth extends EventTarget implements IBluetooth {
   private _adapter: Adapter;
@@ -80,37 +80,28 @@ export class Bluetooth extends EventTarget implements IBluetooth {
     );
 
     let device: any = undefined;
-    const devicesToFree: Peripheral[] = [];
 
     for (let i = 0; i < resultsCount; i++) {
       const d = simpleble_adapter_scan_get_results_handle(this._adapter, i);
       const id = simpleble_peripheral_identifier(d);
       const address = simpleble_peripheral_address(d);
-      const count = simpleble_peripheral_manufacturer_data_count(this._adapter);
+      const count = simpleble_peripheral_manufacturer_data_count(d);
       const manufacturerData: BluetoothManufacturerDataMap = new Map();
       for (let j = 0; j < count; j++) {
-        const data = simpleble_peripheral_manufacturer_data_get(
-          this._adapter,
-          j,
-        );
+        const data = simpleble_peripheral_manufacturer_data_get(d, j);
         if (data) {
-          manufacturerData.set(data.id, new DataView(data.data));
+          manufacturerData.set(data.id, new DataView(data.data.buffer));
         }
       }
       const found = options.deviceFound({ id, address, manufacturerData });
       if (found) {
-        const rssi = simpleble_peripheral_rssi(this._adapter);
+        const rssi = simpleble_peripheral_rssi(d);
         device = new BluetoothDevice(d, address, id, {
           rssi,
           manufacturerData,
         });
         break;
-      } else {
-        // TODO: Not sure if d should be freed even when used.
-        devicesToFree.push(d);
       }
-    }
-    for (const d of devicesToFree) {
       simpleble_peripheral_release_handle(d);
     }
 
