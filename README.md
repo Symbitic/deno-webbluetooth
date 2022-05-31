@@ -1,6 +1,7 @@
 # Deno-WebBluetooth
 
-WebBluetooth wrapper for Deno using the excellent [SimpleBLE](https://github.com/OpenBluetoothToolbox/SimpleBLE) library.
+WebBluetooth wrapper for Deno using the excellent
+[SimpleBLE](https://github.com/OpenBluetoothToolbox/SimpleBLE) library.
 
 **This is not yet complete or compliant with the WebBluetooth standard.**
 
