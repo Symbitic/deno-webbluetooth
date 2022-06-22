@@ -48,9 +48,16 @@ export class BluetoothRemoteGATTCharacteristic extends EventTarget
   }
 
   get properties(): BluetoothCharacteristicProperties {
-    throw new Error(
-      "BluetoothRemoteGATTCharacteristic.properties() not implemented yet",
-    );
+    return {
+      authenticatedSignedWrites: false,
+      broadcast: false,
+      indicate: false, // TODO: Change when FFI callbacks are working.
+      notify: false, // TODO: Change when FFI callbacks are working.
+      read: true,
+      reliableWrite: true,
+      write: true,
+      writeWithoutResponse: true,
+    };
   }
 
   get value(): DataView | undefined {
