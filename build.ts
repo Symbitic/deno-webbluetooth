@@ -6,7 +6,6 @@ const BIN_DIR = `${BUILD_DIR}/bin`;
 const CMAKELISTS_FILE = `${SOURCE_DIR}/CMakeLists.txt`;
 const TARGET_NAME = "simpleble-c";
 const WINDOWS_NAME = "simpleble-c.dll";
-const MACOS_NAME = "libsimpleble-c.dylib";
 
 // Respects CMAKE_PATH, GIT_PATH, etc.
 async function find(program: string): Promise<string> {
@@ -75,10 +74,10 @@ async function configure(cmakeExe: string): Promise<void> {
       args.push(await which("ninja") ? "Ninja" : "Unix Makefiles");
       break;
     case "windows":
-      args.push("-G");
-      args.push("Visual Studio 16 2019");
-      args.push("-A");
-      args.push(Deno.build.arch === "aarch64" ? "ARM64" : "x64");
+      //args.push("-G");
+      //args.push("Visual Studio 16 2019");
+      //args.push("-A");
+      //args.push(Deno.build.arch === "aarch64" ? "ARM64" : "x64");
       args.push('-DCMAKE_SYSTEM_VERSION="10.0.22000.0"');
       break;
   }
