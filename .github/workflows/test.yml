@@ -53,3 +53,40 @@ jobs:
 
       - name: Build
         run: deno run -A --unstable ./build.ts
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v2
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@main
+        with:
+          deno-version: 'v1.x'
+
+      - name: Setup CMake
+        uses: symbitic/install-cmake@master
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v1.0.2
+
+      - name: Build
+        run: deno run -A --unstable ./build.ts
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v2
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@main
+        with:
+          deno-version: 'v1.x'
+
+      - name: Setup CMake
+        uses: symbitic/install-cmake@master
+
+      - name: Build
+        run: deno run -A --unstable ./build.ts

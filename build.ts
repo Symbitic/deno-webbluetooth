@@ -62,10 +62,12 @@ async function configure(cmakeExe: string): Promise<void> {
     "-S",
     SOURCE_DIR,
   ];
+
   switch (Deno.build.os) {
     case "darwin":
-      args.push("-DCMAKE_CONFIGURATION_TYPES=Release");
+      args.push("-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64");
       args.push("-DCMAKE_OSX_DEPLOYMENT_TARGET=10.15");
+      args.push("-DCMAKE_BUILD_TYPE=Release");
       break;
     case "linux":
       args.push("-DCMAKE_BUILD_TYPE=Release");
@@ -73,11 +75,11 @@ async function configure(cmakeExe: string): Promise<void> {
       args.push(await which("ninja") ? "Ninja" : "Unix Makefiles");
       break;
     case "windows":
-      args.push("-DCMAKE_CONFIGURATION_TYPES=Release");
-      args.push("-DCMAKE_OSX_DEPLOYMENT_TARGET=10.15");
-      args.push('-DCMAKE_SYSTEM_VERSION="10.0.22000.0"');
+      args.push("-G");
+      args.push("Visual Studio 17 2022");
       args.push("-A");
-      args.push(Deno.build.arch === "aarch64" ? "ARM64" : "X64");
+      args.push(Deno.build.arch === "aarch64" ? "ARM64" : "x64");
+      args.push('-DCMAKE_SYSTEM_VERSION="10.0.22000.0"');
       break;
   }
   const p = Deno.run({
@@ -99,6 +101,8 @@ async function build(cmakeExe: string): Promise<void> {
       BUILD_DIR,
       "--config",
       "Release",
+      "--parallel",
+      "4",
       "--target",
       TARGET_NAME,
     ],
@@ -111,11 +115,34 @@ async function build(cmakeExe: string): Promise<void> {
   }
 }
 
+import { walk } from "https://deno.land/std@0.144.0/fs/mod.ts";
+
 async function postbuild(): Promise<void> {
   if (Deno.build.os === "linux") {
     return;
   }
   const filename = Deno.build.os === "windows" ? WINDOWS_NAME : MACOS_NAME;
+  // TEMP
+  /*
+  if (Deno.build.os !== "windows") {
+    console.log("Finding");
+    const p = Deno.run({
+      cmd: [
+        "find",
+        BUILD_DIR
+      ],
+    });
+    const status = await p.status();
+    p.close();
+  }
+  */
+
+  console.log("-------------------------------------------------------------");
+  for await (const entry of walk(BUILD_DIR)) {
+    console.log(entry.path);
+  }
+  console.log("-------------------------------------------------------------");
+
   const fromPath = `${BIN_DIR}/Release/${filename}`;
   const toPath = `${BIN_DIR}/${filename}`;
   await Deno.copyFile(fromPath, toPath);
