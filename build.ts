@@ -74,8 +74,7 @@ async function configure(cmakeExe: string): Promise<void> {
       args.push(await which("ninja") ? "Ninja" : "Unix Makefiles");
       break;
     case "windows":
-      args.push("-G");
-      args.push("\"Visual Studio 16 2019\"");
+      args.push("-G 'Visual Studio 16 2019'");
       args.push("-A");
       args.push("x64");
       //args.push(Deno.build.arch === "aarch64" ? "ARM64" : "x64");
