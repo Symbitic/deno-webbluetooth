@@ -20,9 +20,6 @@ jobs:
         with:
           deno-version: 'v1.x'
 
-      - name: Setup CMake
-        uses: symbitic/install-cmake@master
-
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v1.0.2
 
