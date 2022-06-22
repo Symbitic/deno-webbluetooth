@@ -5,8 +5,8 @@ const BUILD_DIR = "build";
 const BIN_DIR = `${BUILD_DIR}/bin`;
 const CMAKELISTS_FILE = `${SOURCE_DIR}/CMakeLists.txt`;
 const TARGET_NAME = "simpleble-c";
-const WINDOWS_NAME = "libsimpleble-c.dylib";
-const MACOS_NAME = "simpleble-c.dll";
+const WINDOWS_NAME = "simpleble-c.dll";
+const MACOS_NAME = "libsimpleble-c.dylib";
 
 // Respects CMAKE_PATH, GIT_PATH, etc.
 async function find(program: string): Promise<string> {

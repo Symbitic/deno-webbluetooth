@@ -19,8 +19,6 @@ jobs:
             os: macos-latest
           - name: "Windows"
             os: windows-latest
-            environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
-            arch: win64_mingw81
 
     steps:
       - name: Setup repo
@@ -37,12 +35,6 @@ jobs:
       - name: Install DBus
         run: sudo apt-get install -y libdbus-1-dev
         if: startsWith(matrix.config.os, 'ubuntu')
-
-      - name: Configure build environment
-        if: startsWith(matrix.config.os, 'windows')
-        run: |
-          call "${{ matrix.config.environment_script }}"
-        shell: cmd
 
       - name: Build
         run: deno run -A --unstable ./build.ts
