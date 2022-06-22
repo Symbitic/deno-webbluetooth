@@ -9,51 +9,6 @@ on:
       - main
 
 jobs:
-  fmt:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Setup repo
-        uses: actions/checkout@v2
-
-      - name: Setup Deno
-        uses: denoland/setup-deno@main
-        with:
-          deno-version: 'v1.x'
-
-      - name: Check Formatting
-        run: deno fmt --check -c deno.json
-
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Setup repo
-        uses: actions/checkout@v2
-
-      - name: Setup Deno
-        uses: denoland/setup-deno@main
-        with:
-          deno-version: 'v1.x'
-
-      - name: Lint
-        run: deno lint -c deno.json
-
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Setup repo
-        uses: actions/checkout@v2
-
-      - name: Setup Deno
-        uses: denoland/setup-deno@main
-        with:
-          deno-version: 'v1.x'
-
-      - name: Install DBus
-        run: sudo apt-get install -y libdbus-1-dev
-
-      - name: Build
-        run: deno run -A --unstable ./build.ts
-
   build-windows:
     runs-on: windows-latest
     steps:
@@ -70,23 +25,6 @@ jobs:
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v1.0.2
-
-      - name: Build
-        run: deno run -A --unstable ./build.ts
-
-  build-macos:
-    runs-on: macos-latest
-    steps:
-      - name: Setup repo
-        uses: actions/checkout@v2
-
-      - name: Setup Deno
-        uses: denoland/setup-deno@main
-        with:
-          deno-version: 'v1.x'
-
-      - name: Setup CMake
-        uses: symbitic/install-cmake@master
 
       - name: Build
         run: deno run -A --unstable ./build.ts
