@@ -76,7 +76,7 @@ async function configure(cmakeExe: string): Promise<void> {
       break;
     case "windows":
       args.push("-G");
-      args.push("Visual Studio 17 2022");
+      args.push("Visual Studio 16 2019");
       args.push("-A");
       args.push(Deno.build.arch === "aarch64" ? "ARM64" : "x64");
       args.push('-DCMAKE_SYSTEM_VERSION="10.0.22000.0"');
@@ -118,10 +118,11 @@ async function build(cmakeExe: string): Promise<void> {
 import { walk } from "https://deno.land/std@0.144.0/fs/mod.ts";
 
 async function postbuild(): Promise<void> {
-  if (Deno.build.os === "linux") {
+  if (Deno.build.os !== "windows") {
     return;
   }
-  const filename = Deno.build.os === "windows" ? WINDOWS_NAME : MACOS_NAME;
+  const filename = WINDOWS_NAME;
+  //const filename = Deno.build.os === "windows" ? WINDOWS_NAME : MACOS_NAME;
   // TEMP
   /*
   if (Deno.build.os !== "windows") {
