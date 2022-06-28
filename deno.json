@@ -1,5 +1,11 @@
 {
   "lint": {
+    "files": {
+      "exclude": [
+        "SimpleBLE",
+        "build"
+      ]
+    },
     "rules": {
       "exclude": [
         "camelcase",
@@ -12,7 +18,18 @@
       ]
     }
   },
+  "fmt": {
+    "files": {
+      "exclude": [
+        "SimpleBLE",
+        "build"
+      ]
+    }
+  },
   "tasks": {
-    "build": "deno run --allow-env --allow-read --allow-run ./build.ts"
+    "configure-linux": "cmake -DCMAKE_BUILD_TYPE=Release -B build -S SimpleBLE",
+    "configure-macos": "cmake -DCMAKE_OSX_ARCHITECTURES=\"arm64;x86_64\" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_BUILD_TYPE=Release -B build -S SimpleBLE",
+    "configure-windows": "cmake -G \"Visual Studio 16 2019\" -A x64 -DCMAKE_SYSTEM_VERSION=10.0.22000.0 -B build -S SimpleBLE",
+    "build": "cmake --build build --config Release --parallel 4 --target simpleble-c"
   }
 }

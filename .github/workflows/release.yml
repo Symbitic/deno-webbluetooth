@@ -6,59 +6,91 @@ on:
       - v*
 
 jobs:
-  build:
-    name: ${{ matrix.config.name }}
-    runs-on: ${{ matrix.config.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        config:
-          - name: "Linux"
-            os: ubuntu-latest
-          - name: "macOS"
-            os: macos-latest
-          - name: "Windows"
-            os: windows-latest
-
+  build-linux:
+    runs-on: ubuntu-latest
     steps:
-      - name: Setup repo
-        uses: actions/checkout@v1
+      - name: Clone Repository
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Install DBus
+        run: sudo apt-get install -y libdbus-1-dev
 
       - name: Setup Deno
         uses: denoland/setup-deno@main
         with:
           deno-version: 'v1.x'
 
+      - name: Configure CMake
+        run: cmake -DCMAKE_BUILD_TYPE=Release -B build -S SimpleBLE
+
+      - name: Build for Linux x64
+        run: cmake --build build --config Release --parallel 4 --target simpleble-c
+
+      - name: Upload
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: build/bin/libsimpleble-c.so
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Clone Repository
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
       - name: Setup CMake
-        uses: symbitic/install-cmake@master
+        uses: jwlawson/actions-setup-cmake@v1.4
+        with:
+          cmake-version: '3.16.x'
 
-      - name: Install DBus
-        run: sudo apt-get install -y libdbus-1-dev
-        if: startsWith(matrix.config.os, 'ubuntu')
+      - name: Setup Deno
+        uses: denoland/setup-deno@main
+        with:
+          deno-version: 'v1.x'
 
-      - name: Build
-        run: deno run -A --unstable ./build.ts
+      - name: Configure CMake
+        run: cmake -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_BUILD_TYPE=Release -B build -S SimpleBLE
 
-      - name: Upload (Windows)
+      - name: Build for macOS arm64/x86_64
+        run: cmake --build build --config Release --parallel 4 --target simpleble-c
+
+      - name: Upload
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/') && startsWith(matrix.config.os, 'windows')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: build/simpleble-c.dll
+          files: build/bin/libsimpleble-c.dylib
 
-      - name: Upload (macOS)
+  build-windows:
+    runs-on: windows-2019
+    steps:
+      - name: Clone Repository
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1.0.2
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@main
+        with:
+          deno-version: 'v1.x'
+
+      - name: Configure CMake
+        run: cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_SYSTEM_VERSION=10.0.22000.0 -B build -S SimpleBLE
+
+      - name: Build for Windows x64
+        run: cmake --build build --config Release --parallel 4 --target simpleble-c
+
+      - name: Upload
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/') && startsWith(matrix.config.os, 'macos')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: build/libsimpleble-c.dylib
-
-      - name: Upload (Linux)
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/') && startsWith(matrix.config.os, 'ubuntu')
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          files: build/libsimpleble-c.so
+          files: build/Release/simpleble-c.dll

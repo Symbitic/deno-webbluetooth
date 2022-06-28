@@ -36,7 +36,7 @@ export class Bluetooth extends EventTarget implements IBluetooth {
     this._devices = [];
 
     const adaptersCount = simpleble_adapter_get_count();
-    if (adaptersCount === 0) {
+    if (adaptersCount === 0n) {
       throw new Deno.errors.NotFound("requestDevice error: no adapters found");
     }
 

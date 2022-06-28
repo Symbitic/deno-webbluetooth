@@ -4,7 +4,9 @@ import { VERSION } from "../version.ts";
 
 const REMOTE_URL =
   `https://github.com/Symbitic/deno-webbluetooth/releases/download/v${VERSION}`;
-const LOCAL_URL = "build";
+const LOCAL_URL = Deno.build.os === "windows"
+  ? "build/bin/Release"
+  : "build/bin";
 
 const { protocol } = new URL(import.meta.url);
 
@@ -20,9 +22,9 @@ const UUID_STRUCT_SIZE = 37;
 const SERVICE_STRUCT_SIZE = 640;
 const MANUFACTURER_SIZE = 40;
 
-export type Adapter = Deno.UnsafePointer;
-export type Peripheral = Deno.UnsafePointer;
-export type Characteristic = Deno.UnsafePointer;
+export type Adapter = bigint;
+export type Peripheral = bigint;
+export type Characteristic = bigint;
 
 export interface Service {
   uuid: string;
@@ -59,7 +61,7 @@ try {
   throw error;
 }
 
-export function simpleble_adapter_get_count(): number {
+export function simpleble_adapter_get_count(): bigint {
   return lib.symbols.simpleble_adapter_get_count();
 }
 export function simpleble_adapter_get_handle(index: number): Adapter {
@@ -101,7 +103,7 @@ export function simpleble_adapter_scan_is_active(handle: Adapter): boolean {
 }
 export function simpleble_adapter_scan_get_results_count(
   handle: Adapter,
-): number {
+): bigint {
   return lib.symbols.simpleble_adapter_scan_get_results_count(handle);
 }
 export function simpleble_adapter_scan_get_results_handle(
@@ -112,7 +114,7 @@ export function simpleble_adapter_scan_get_results_handle(
 }
 export function simpleble_adapter_get_paired_peripherals_count(
   handle: Adapter,
-): number {
+): bigint {
   return lib.symbols.simpleble_adapter_get_paired_peripherals_count(handle);
 }
 export function simpleble_adapter_get_paired_peripherals_handle(
@@ -176,7 +178,7 @@ export function simpleble_peripheral_unpair(handle: Peripheral): boolean {
 }
 export function simpleble_peripheral_services_count(
   handle: Peripheral,
-): number {
+): bigint {
   return lib.symbols.simpleble_peripheral_services_count(handle);
 }
 
@@ -218,7 +220,7 @@ export function simpleble_peripheral_services_get(
 
 export function simpleble_peripheral_manufacturer_data_count(
   handle: Peripheral,
-): number {
+): bigint {
   return lib.symbols.simpleble_peripheral_manufacturer_data_count(handle);
 }
 
@@ -268,12 +270,16 @@ export function simpleble_peripheral_read(
   );
   if (err !== 0) return undefined;
 
+  /*
   const dataView = new Deno.UnsafePointerView(
     new Deno.UnsafePointer(dataPtr[0]),
   );
   const lengthView = new Deno.UnsafePointerView(
     new Deno.UnsafePointer(lengthPtr[0]),
   );
+  */
+  const dataView = new Deno.UnsafePointerView(dataPtr[0]);
+  const lengthView = new Deno.UnsafePointerView(lengthPtr[0]);
 
   const dataLength = Number(lengthView.getBigUint64());
   const data = new Uint8Array(dataLength);
@@ -342,6 +348,6 @@ export function simpleble_peripheral_unsubscribe(
   return true;
 }
 
-export function simpleble_free(handle: Deno.UnsafePointer): void {
+export function simpleble_free(handle: bigint): void {
   lib.symbols.simpleble_free(handle);
 }

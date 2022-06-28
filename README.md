@@ -7,9 +7,22 @@ WebBluetooth wrapper for Deno using the excellent
 
 ## Building
 
-To build SimpleBLE, run:
+Before building SimpleBLE, make sure the submodules are checked out.
 
-    deno run -A --unstable ./build.ts
+    git submodule init
+    git submodule update
+
+To build SimpleBLE, first run the appropriate configure script:
+
+    deno task configure-linux
+    # OR
+    deno task configure-macos
+    # OR
+    deno task configure-windows
+
+After that, build SimpleBLE:
+
+    deno task build
 
 ## Running
 

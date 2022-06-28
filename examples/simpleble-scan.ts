@@ -14,7 +14,7 @@ import {
 const DELAY = 2000;
 
 const adaptersCount = simpleble_adapter_get_count();
-if (adaptersCount === 0) {
+if (adaptersCount === 0n) {
   console.error("No Bluetooth adapters found");
   Deno.exit(1);
 }
@@ -29,7 +29,7 @@ simpleble_adapter_scan_stop(adapter);
 console.log(`Finished scan`);
 
 const resultsCount = simpleble_adapter_scan_get_results_count(adapter);
-if (resultsCount === 0) {
+if (resultsCount === 0n) {
   console.error("No devices found");
   Deno.exit(1);
 }
