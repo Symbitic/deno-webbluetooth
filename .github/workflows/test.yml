@@ -39,7 +39,7 @@ jobs:
           deno-version: 'v1.x'
 
       - name: Configure CMake
-        run: cmake -G "Ninja" -DCMAKE_BUILD_TYPE=Release -B build -S SimpleBLE
+        run: cmake -DCMAKE_BUILD_TYPE=Release -B build -S SimpleBLE
 
       - name: Build for Linux x64
         run: cmake --build build --config Release --parallel 4 --target simpleble-c
