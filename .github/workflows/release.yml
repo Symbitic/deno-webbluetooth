@@ -93,4 +93,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: build/Release/simpleble-c.dll
+          files: build/bin/Release/simpleble-c.dll
