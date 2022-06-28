@@ -25,16 +25,57 @@ const MANUFACTURER_SIZE = 40;
 export type Adapter = bigint;
 export type Peripheral = bigint;
 export type Characteristic = bigint;
+export type UserData = bigint; // void*
 
+/** Bluetooth service. */
 export interface Service {
   uuid: string;
   characteristics: string[];
 }
 
+/** Bluetooth manufacturer data. */
 export interface ManufacturerData {
   id: number;
   data: Uint8Array;
 }
+
+export type OnScanStartCallback = (
+  adapter: Adapter,
+  userdata: UserData,
+) => void;
+export type OnScanStopCallback = (adapter: Adapter, userdata: UserData) => void;
+export type OnScanUpdatedCallback = (
+  adapter: Adapter,
+  peripheral: Peripheral,
+  userdata: UserData,
+) => void;
+export type OnScanUpdatedFound = (
+  adapter: Adapter,
+  peripheral: Peripheral,
+  userdata: UserData,
+) => void;
+export type OnNotifyCallback = (
+  service: Uint8Array,
+  characteristic: Uint8Array,
+  data: Uint8Array,
+  dataLength: number,
+  userdata: UserData,
+) => void;
+export type OnIndicateCallback = (
+  service: Uint8Array,
+  characteristic: Uint8Array,
+  data: Uint8Array,
+  dataLength: number,
+  userdata: UserData,
+) => void;
+export type OnConnectedCallback = (
+  peripheral: Peripheral,
+  userdata: UserData,
+) => void;
+export type OnDisconnectedCallback = (
+  peripheral: Peripheral,
+  userdata: UserData,
+) => void;
 
 function encodeString(str: string, bufSize = 0): Uint8Array {
   const encoder = new TextEncoder();

@@ -39,6 +39,28 @@ export const symbols = {
     parameters: ["pointer", "usize"],
     result: "pointer",
   },
+  simpleble_adapter_set_callback_on_scan_found: {
+    parameters: ["pointer"],
+    result: "u32",
+  },
+  /*
+  simpleble_adapter_set_callback_on_scan_found: {
+    parameters: ["pointer", { function: { parameters: ["pointer", "pointer", "pointer"], result: "void" }}, "pointer"],
+    result: "u32",
+  },
+  simpleble_adapter_set_callback_on_scan_start: {
+    parameters: ["pointer", { function: { parameters: ["pointer", "pointer"], result: "void" }}, "pointer"],
+    result: "u32",
+  },
+  simpleble_adapter_set_callback_on_scan_stop: {
+    parameters: ["pointer", { function: { parameters: ["pointer", "pointer"], result: "void" }}, "pointer"],
+    result: "u32",
+  },
+  simpleble_adapter_set_callback_on_scan_updated: {
+    parameters: ["pointer", { function: { parameters: ["pointer", "pointer", "pointer"], result: "void" }}, "pointer"],
+    result: "u32",
+  },
+  */
   simpleble_adapter_get_paired_peripherals_count: {
     parameters: ["pointer"],
     result: "usize",
@@ -71,6 +93,18 @@ export const symbols = {
     parameters: ["pointer"],
     result: "u32",
   },
+  /*
+  simpleble_peripheral_indicate: {
+    parameters: [
+      "pointer", // simpleble_peripheral_t handle
+      "pointer", // simpleble_uuid_t service
+      "pointer", // simpleble_uuid_t characteristic
+      { "function": { parameters: ["pointer", "pointer", "pointer", "usize", "pointer"], result: "void" }},
+      "pointer", // void* userdata
+    ],
+    result: "u32",
+  },
+  */
   simpleble_peripheral_is_connected: {
     parameters: ["pointer", "pointer"],
     result: "u32",
@@ -103,6 +137,18 @@ export const symbols = {
     parameters: ["pointer", "usize", "pointer"],
     result: "u32",
   },
+  /*
+  simpleble_peripheral_notify: {
+    parameters: [
+      "pointer", // simpleble_peripheral_t handle
+      "pointer", // simpleble_uuid_t service
+      "pointer", // simpleble_uuid_t characteristic
+      { "function": { parameters: ["pointer", "pointer", "pointer", "usize", "pointer"], result: "void" }},
+      "pointer", // void* userdata
+    ],
+    result: "u32",
+  },
+  */
   simpleble_peripheral_read: {
     parameters: [
       "pointer", // simpleble_peripheral_t handle
@@ -113,6 +159,24 @@ export const symbols = {
     ],
     result: "u32",
   },
+  /*
+  simpleble_peripheral_set_callback_on_connected: {
+    parameters: [
+      "pointer", // simpleble_peripheral_t handle
+      { "function": { parameters: ["pointer", "pointer"], result: "void" }},
+      "pointer", // void* userdata
+    ],
+    result: "u32",
+  },
+  simpleble_peripheral_set_callback_on_disconnected: {
+    parameters: [
+      "pointer", // simpleble_peripheral_t handle
+      { "function": { parameters: ["pointer", "pointer"], result: "void" }},
+      "pointer", // void* userdata
+    ],
+    result: "u32",
+  },
+  */
   simpleble_peripheral_write_request: {
     parameters: [
       "pointer", // simpleble_peripheral_t handle
