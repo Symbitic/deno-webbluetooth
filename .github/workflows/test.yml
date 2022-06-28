@@ -25,11 +25,11 @@ jobs:
       with:
         deno-version: 'v1.x'
 
+    - name: Compile Lib for Windows x64
+      run: |
+        cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_SYSTEM_VERSION=10.0.22000.0 -B build -S SimpleBLE
+        cmake --build build --config Release --parallel 4
+      shell: cmd
+
     - name: Build
       run: deno run -A --unstable ./build.ts
-
-#    - name: Compile Lib for Windows x64
-#      run: |
-#        cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_SYSTEM_VERSION=10.0.22000.0 -B build -S SimpleBLE
-#        cmake --build build --config Release --parallel 4
-#      shell: cmd

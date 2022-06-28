@@ -153,7 +153,10 @@ async function postbuild(): Promise<void> {
 const cmake = await find("cmake");
 const git = await find("git");
 
-await checkout(git);
-await configure(cmake);
+//await checkout(git);
+//await configure(cmake);
 //await build(cmake);
 //await postbuild();
+for await (const entry of walk(BUILD_DIR)) {
+  console.log(entry.path);
+}
