@@ -1,35 +1,85 @@
 name: Test
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  - push
+  - pull_request
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone Repository
+        uses: actions/checkout@v2
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@main
+        with:
+          deno-version: 'v1.x'
+
+      - name: Check Formatting
+        run: deno fmt --check -c deno.json
+
+      - name: Lint
+        run: deno lint -c deno.json
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone Repository
+        uses: actions/checkout@v2
+
+      - name: Install DBus
+        run: sudo apt-get install -y libdbus-1-dev
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@main
+        with:
+          deno-version: 'v1.x'
+
+      - name: Configure CMake
+        run: cmake -G "Ninja" -DCMAKE_BUILD_TYPE=Release -B build -S SimpleBLE
+
+      - name: Build for Linux x64
+        run: cmake --build build --config Release --parallel 4 --target simpleble-c
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Clone Repository
+        uses: actions/checkout@v2
+
+      - name: Setup CMake
+        uses: jwlawson/actions-setup-cmake@v1.4
+        with:
+          cmake-version: '3.16.x'
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@main
+        with:
+          deno-version: 'v1.x'
+
+      - name: Configure CMake
+        run: cmake -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_BUILD_TYPE=Release -B build -S SimpleBLE
+
+      - name: Build for macOS arm64/x86_64
+        run: cmake --build build --config Release --parallel 4 --target simpleble-c
+
   build-windows:
     runs-on: windows-2019
     steps:
-    - name: Clone Repository
-      uses: actions/checkout@v2
-      with:
-        submodules: recursive
+      - name: Clone Repository
+        uses: actions/checkout@v2
 
-    - name: Add msbuild to PATH
-      uses: microsoft/setup-msbuild@v1.0.2
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1.0.2
 
-    - name: Setup Deno
-      uses: denoland/setup-deno@main
-      with:
-        deno-version: 'v1.x'
+      - name: Setup Deno
+        uses: denoland/setup-deno@main
+        with:
+          deno-version: 'v1.x'
 
-    - name: Compile Lib for Windows x64
-      run: |
-        cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_SYSTEM_VERSION=10.0.22000.0 -B build -S SimpleBLE
-        cmake --build build --config Release --parallel 4
-      shell: cmd
+      - name: Configure CMake
+        run: cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_SYSTEM_VERSION=10.0.22000.0 -B build -S SimpleBLE
 
-    - name: Build
-      run: deno run -A --unstable ./build.ts
+      - name: Build for Windows x64
+        run: cmake --build build --config Release --parallel 4 --target simpleble-c
