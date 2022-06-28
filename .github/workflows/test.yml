@@ -27,6 +27,8 @@ jobs:
     steps:
       - name: Clone Repository
         uses: actions/checkout@v2
+        with:
+          submodules: recursive
 
       - name: Install DBus
         run: sudo apt-get install -y libdbus-1-dev
@@ -47,6 +49,8 @@ jobs:
     steps:
       - name: Clone Repository
         uses: actions/checkout@v2
+        with:
+          submodules: recursive
 
       - name: Setup CMake
         uses: jwlawson/actions-setup-cmake@v1.4
@@ -69,6 +73,8 @@ jobs:
     steps:
       - name: Clone Repository
         uses: actions/checkout@v2
+        with:
+          submodules: recursive
 
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.0.2
