@@ -1,4 +1,4 @@
-import { extensions, prefixes } from "../deps.ts";
+import { Plug } from "../deps.ts";
 import { symbols } from "./symbols.ts";
 import { VERSION } from "../version.ts";
 
@@ -10,13 +10,18 @@ const LOCAL_URL = Deno.build.os === "windows"
 
 const { protocol } = new URL(import.meta.url);
 
-const ext = extensions[Deno.build.os];
-const prefix = prefixes[Deno.build.os];
-
 const libDir = protocol === "file:" ? LOCAL_URL : REMOTE_URL;
-const envPath = Deno.env.get("DENO_SIMPLEBLE_PATH");
+//const envPath = Deno.env.get("DENO_SIMPLEBLE_PATH");
 
-const libName = envPath ?? `${libDir}/${prefix}simpleble-c${ext}`;
+const options: Plug.Options = {
+  name: "simpleble",
+  policy: protocol === "file:" ? Plug.CachePolicy.NONE : Plug.CachePolicy.STORE,
+  urls: {
+    darwin: `${libDir}/libsimpleble-c.dylib`,
+    windows: `${libDir}/simpleble-c.dll`,
+    linux: `${libDir}/libsimpleble-c.so`,
+  },
+};
 
 const UUID_STRUCT_SIZE = 37;
 const SERVICE_STRUCT_SIZE = 640;
@@ -89,7 +94,7 @@ function encodeString(str: string, bufSize = 0): Uint8Array {
 let lib: Deno.DynamicLibrary<typeof symbols>;
 
 try {
-  lib = Deno.dlopen(libName, symbols);
+  lib = await Plug.prepare(options, symbols);
 } catch (e) {
   if (e instanceof Deno.errors.PermissionDenied) {
     throw e;
@@ -311,14 +316,6 @@ export function simpleble_peripheral_read(
   );
   if (err !== 0) return undefined;
 
-  /*
-  const dataView = new Deno.UnsafePointerView(
-    new Deno.UnsafePointer(dataPtr[0]),
-  );
-  const lengthView = new Deno.UnsafePointerView(
-    new Deno.UnsafePointer(lengthPtr[0]),
-  );
-  */
   const dataView = new Deno.UnsafePointerView(dataPtr[0]);
   const lengthView = new Deno.UnsafePointerView(lengthPtr[0]);
 
