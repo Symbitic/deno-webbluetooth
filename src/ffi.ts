@@ -30,7 +30,7 @@ const MANUFACTURER_SIZE = 40;
 export type Adapter = bigint;
 export type Peripheral = bigint;
 export type Characteristic = bigint;
-export type UserData = bigint; // void*
+export type UserData = bigint | null; // void*
 
 /** Bluetooth service. */
 export interface Service {
@@ -44,40 +44,38 @@ export interface ManufacturerData {
   data: Uint8Array;
 }
 
-export type OnScanStartCallback = (
+export type OnScanStart = (
   adapter: Adapter,
   userdata: UserData,
 ) => void;
-export type OnScanStopCallback = (adapter: Adapter, userdata: UserData) => void;
-export type OnScanUpdatedCallback = (
-  adapter: Adapter,
-  peripheral: Peripheral,
-  userdata: UserData,
-) => void;
-export type OnScanUpdatedFound = (
+export type OnScanStop = (adapter: Adapter, userdata: UserData) => void;
+export type OnScanUpdated = (
   adapter: Adapter,
   peripheral: Peripheral,
   userdata: UserData,
 ) => void;
-export type OnNotifyCallback = (
-  service: Uint8Array,
-  characteristic: Uint8Array,
+export type OnScanFound = (
+  adapter: Adapter,
+  peripheral: Peripheral,
+  userdata: UserData,
+) => void;
+export type OnNotify = (
+  service: string,
+  characteristic: string,
   data: Uint8Array,
-  dataLength: number,
   userdata: UserData,
 ) => void;
-export type OnIndicateCallback = (
-  service: Uint8Array,
-  characteristic: Uint8Array,
+export type OnIndicate = (
+  service: string,
+  characteristic: string,
   data: Uint8Array,
-  dataLength: number,
   userdata: UserData,
 ) => void;
-export type OnConnectedCallback = (
+export type OnConnected = (
   peripheral: Peripheral,
   userdata: UserData,
 ) => void;
-export type OnDisconnectedCallback = (
+export type OnDisconnected = (
   peripheral: Peripheral,
   userdata: UserData,
 ) => void;
@@ -92,6 +90,16 @@ function encodeString(str: string, bufSize = 0): Uint8Array {
 }
 
 let lib: Deno.DynamicLibrary<typeof symbols>;
+
+const MINIMUM_DENO_VERSION = "1.23.0";
+const [major, minor, _patch] = Deno.version.deno.split(".");
+const [minMajor, minMinor, _minPatch] = MINIMUM_DENO_VERSION.split(".");
+
+if (major < minMajor || (major === minMajor && minor < minMinor)) {
+  throw new Error(
+    `Please upgrade to Deno version ${MINIMUM_DENO_VERSION} or later`,
+  );
+}
 
 try {
   lib = await Plug.prepare(options, symbols);
@@ -172,7 +180,6 @@ export function simpleble_adapter_get_paired_peripherals_handle(
     index,
   );
 }
-
 export function simpleble_peripheral_release_handle(handle: Peripheral): void {
   lib.symbols.simpleble_peripheral_release_handle(handle);
 }
@@ -388,4 +395,213 @@ export function simpleble_peripheral_unsubscribe(
 
 export function simpleble_free(handle: bigint): void {
   lib.symbols.simpleble_free(handle);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+export function simpleble_adapter_set_callback_on_scan_found(
+  handle: Adapter,
+  cb: OnScanFound,
+  userdata: UserData = null,
+): boolean {
+  const cbResource = new Deno.UnsafeCallback(
+    {
+      parameters: ["pointer", "pointer", "pointer"],
+      result: "void",
+    },
+    (handlePtr: bigint, peripheralPtr: bigint, userdataPtr: bigint) => {
+      cb(handlePtr, peripheralPtr, userdataPtr);
+    },
+  );
+  const ret = lib.symbols.simpleble_adapter_set_callback_on_scan_found(
+    handle,
+    cbResource.pointer,
+    userdata,
+  );
+  return ret > 0 ? false : true;
+}
+
+export function simpleble_adapter_set_callback_on_scan_start(
+  handle: Adapter,
+  cb: OnScanStart,
+  userdata: UserData = null,
+): boolean {
+  const cbResource = new Deno.UnsafeCallback(
+    {
+      parameters: ["pointer", "pointer"],
+      result: "void",
+    },
+    (handlePtr: bigint, userdataPtr: bigint) => {
+      cb(handlePtr, userdataPtr);
+    },
+  );
+  const ret = lib.symbols.simpleble_adapter_set_callback_on_scan_start(
+    handle,
+    cbResource.pointer,
+    userdata,
+  );
+  return ret > 0 ? false : true;
+}
+
+export function simpleble_adapter_set_callback_on_scan_stop(
+  handle: Adapter,
+  cb: OnScanStop,
+  userdata: UserData = null,
+): boolean {
+  const cbResource = new Deno.UnsafeCallback(
+    {
+      parameters: ["pointer", "pointer"],
+      result: "void",
+    },
+    (handlePtr: bigint, userdataPtr: bigint) => {
+      cb(handlePtr, userdataPtr);
+    },
+  );
+  const ret = lib.symbols.simpleble_adapter_set_callback_on_scan_stop(
+    handle,
+    cbResource.pointer,
+    userdata,
+  );
+  return ret > 0 ? false : true;
+}
+export function simpleble_adapter_set_callback_on_scan_updated(
+  handle: Adapter,
+  cb: OnScanUpdated,
+  userdata: UserData = null,
+): boolean {
+  const cbResource = new Deno.UnsafeCallback(
+    {
+      parameters: ["pointer", "pointer", "pointer"],
+      result: "void",
+    },
+    (handlePtr: bigint, peripheralPtr: bigint, userdataPtr: bigint) => {
+      cb(handlePtr, peripheralPtr, userdataPtr);
+    },
+  );
+  const ret = lib.symbols.simpleble_adapter_set_callback_on_scan_updated(
+    handle,
+    cbResource.pointer,
+    userdata,
+  );
+  return ret > 0 ? false : true;
+}
+
+export function simpleble_peripheral_indicate(
+  handle: Peripheral,
+  service: string,
+  characteristic: string,
+  cb: OnIndicate,
+  userdata: UserData = null,
+): boolean {
+  const cbResource = new Deno.UnsafeCallback(
+    {
+      parameters: ["pointer", "pointer", "pointer", "usize", "pointer"],
+      result: "void",
+    },
+    (
+      servicePtr: bigint,
+      charPtr: bigint,
+      dataPtr: bigint,
+      dataSize: bigint,
+      userdataPtr: bigint,
+    ) => {
+      const service = new Deno.UnsafePointerView(servicePtr).getCString();
+      const char = new Deno.UnsafePointerView(charPtr).getCString();
+      const data = new Uint8Array(Number(dataSize));
+      const dataView = new Deno.UnsafePointerView(dataPtr);
+      dataView.copyInto(data);
+      cb(service, char, data, userdataPtr);
+    },
+  );
+  const serviceBuf = encodeString(service, UUID_STRUCT_SIZE);
+  const charBuf = encodeString(characteristic, UUID_STRUCT_SIZE);
+  const ret = lib.symbols.simpleble_peripheral_indicate(
+    handle,
+    serviceBuf,
+    charBuf,
+    cbResource.pointer,
+    userdata,
+  );
+  return ret > 0 ? false : true;
+}
+
+export function simpleble_peripheral_notify(
+  handle: Peripheral,
+  service: string,
+  characteristic: string,
+  cb: OnNotify,
+  userdata: UserData = null,
+): boolean {
+  const cbResource = new Deno.UnsafeCallback(
+    {
+      parameters: ["pointer", "pointer", "pointer", "usize", "pointer"],
+      result: "void",
+    },
+    (
+      servicePtr: bigint,
+      charPtr: bigint,
+      dataPtr: bigint,
+      dataSize: bigint,
+      userdataPtr: bigint,
+    ) => {
+      const service = new Deno.UnsafePointerView(servicePtr).getCString();
+      const char = new Deno.UnsafePointerView(charPtr).getCString();
+      const data = new Uint8Array(Number(dataSize));
+      const dataView = new Deno.UnsafePointerView(dataPtr);
+      dataView.copyInto(data);
+      cb(service, char, data, userdataPtr);
+    },
+  );
+  const serviceBuf = encodeString(service, UUID_STRUCT_SIZE);
+  const charBuf = encodeString(characteristic, UUID_STRUCT_SIZE);
+  const ret = lib.symbols.simpleble_peripheral_notify(
+    handle,
+    serviceBuf,
+    charBuf,
+    cbResource.pointer,
+    userdata,
+  );
+  return ret > 0 ? false : true;
+}
+export function simpleble_peripheral_set_callback_on_connected(
+  handle: Peripheral,
+  cb: OnConnected,
+  userdata: UserData = null,
+): boolean {
+  const cbResource = new Deno.UnsafeCallback(
+    {
+      parameters: ["pointer", "pointer"],
+      result: "void",
+    },
+    (handlePtr: bigint, userdataPtr: bigint) => {
+      cb(handlePtr, userdataPtr);
+    },
+  );
+  const ret = lib.symbols.simpleble_peripheral_set_callback_on_connected(
+    handle,
+    cbResource.pointer,
+    userdata,
+  );
+  return ret > 0 ? false : true;
+}
+export function simpleble_peripheral_set_callback_on_disconnected(
+  handle: Peripheral,
+  cb: OnDisconnected,
+  userdata: UserData = null,
+): boolean {
+  const cbResource = new Deno.UnsafeCallback(
+    {
+      parameters: ["pointer", "pointer"],
+      result: "void",
+    },
+    (handlePtr: bigint, userdataPtr: bigint) => {
+      cb(handlePtr, userdataPtr);
+    },
+  );
+  const ret = lib.symbols.simpleble_peripheral_set_callback_on_disconnected(
+    handle,
+    cbResource.pointer,
+    userdata,
+  );
+  return ret > 0 ? false : true;
 }

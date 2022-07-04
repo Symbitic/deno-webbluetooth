@@ -10,12 +10,17 @@ import {
   simpleble_peripheral_connect,
   simpleble_peripheral_disconnect,
   simpleble_peripheral_identifier,
+  simpleble_peripheral_indicate,
+  simpleble_peripheral_notify,
   simpleble_peripheral_release_handle,
   simpleble_peripheral_services_count,
   simpleble_peripheral_services_get,
+  simpleble_peripheral_set_callback_on_connected,
+  simpleble_peripheral_set_callback_on_disconnected,
 } from "../src/ffi.ts";
 
 const DELAY = 2000;
+const DELAY2 = 5000;
 
 const adaptersCount = simpleble_adapter_get_count();
 if (adaptersCount === 0n) {
@@ -56,6 +61,12 @@ if (isNaN(input) || input < 0 || input >= resultsCount) {
 }
 
 const device = simpleble_adapter_scan_get_results_handle(adapter, input);
+simpleble_peripheral_set_callback_on_connected(device, () => {
+  console.log("CONNECTED");
+});
+simpleble_peripheral_set_callback_on_disconnected(device, () => {
+  console.log("DISCONNECTED");
+});
 const connected = simpleble_peripheral_connect(device);
 if (!connected) {
   console.error("Failed to connect");
@@ -83,6 +94,26 @@ const charsCount = service.characteristics.length;
 console.log(`Found ${charsCount} characteristics`);
 for (let i = 0; i < charsCount; i++) {
   console.log(`[${i}] ${service.characteristics[i]}`);
+}
+
+if (charsCount > 0) {
+  simpleble_peripheral_indicate(
+    device,
+    service.uuid,
+    service.characteristics[0],
+    (service: string, char: string) => {
+      console.log(`INDICATE: ${service} - ${char}`);
+    },
+  );
+  simpleble_peripheral_notify(
+    device,
+    service.uuid,
+    service.characteristics[0],
+    (service: string, char: string) => {
+      console.log(`NOTIFY: ${service} - ${char}`);
+    },
+  );
+  await delay(DELAY2);
 }
 
 simpleble_peripheral_disconnect(device);
