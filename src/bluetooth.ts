@@ -23,9 +23,12 @@ import type {
 } from "./interfaces.ts";
 import type { Adapter } from "./ffi.ts";
 
+/**
+ * Interface for creating [[BluetoothDevice]] objects.
+ */
 export class Bluetooth extends EventTarget implements IBluetooth {
   private _adapter: Adapter;
-  private _devices: BluetoothDevice[];
+  private _devices: IBluetoothDevice[];
   private _onavailabilitychanged?: (ev: Event) => void;
 
   /** Since Deno cannot navigate by Bluetooth URL, this will never be present. */
@@ -35,6 +38,8 @@ export class Bluetooth extends EventTarget implements IBluetooth {
     super();
     this._devices = [];
 
+    // NOTE: a global `bluetooth` variable cannot be exported while the
+    // constructor throws an error. Maybe move this.
     const adaptersCount = simpleble_adapter_get_count();
     if (adaptersCount === 0n) {
       throw new Deno.errors.NotFound("requestDevice error: no adapters found");
@@ -45,6 +50,7 @@ export class Bluetooth extends EventTarget implements IBluetooth {
     this.dispatchEvent(new Event("availabilitychanged"));
   }
 
+  /** Event handler for the `availabilitychanged` event. */
   // deno-lint-ignore explicit-module-boundary-types
   set onavailabilitychanged(fn: (ev: Event) => void) {
     if (this._onavailabilitychanged) {
@@ -57,18 +63,22 @@ export class Bluetooth extends EventTarget implements IBluetooth {
     this.addEventListener("availabilitychanged", this._onavailabilitychanged);
   }
 
+  /** Determines if a working Bluetooth adapter is usable. */
   getAvailability(): Promise<boolean> {
     const count = simpleble_adapter_get_count();
     return Promise.resolve(count > 0);
   }
 
+  /** Returns a list of every device requested thus far. */
   getDevices(): Promise<IBluetoothDevice[]> {
     return Promise.resolve(this._devices);
   }
 
-  async requestDevice(
+  /** @hidden */
+  private async request(
     options: RequestDeviceOptions,
-  ): Promise<IBluetoothDevice> {
+    singleDevice: boolean,
+  ): Promise<IBluetoothDevice[]> {
     const timeout = options.timeout ?? 5000;
 
     simpleble_adapter_scan_start(this._adapter);
@@ -79,7 +89,7 @@ export class Bluetooth extends EventTarget implements IBluetooth {
       this._adapter,
     );
 
-    let device: any = undefined;
+    const devices: IBluetoothDevice[] = [];
 
     for (let i = 0; i < resultsCount; i++) {
       const d = simpleble_adapter_scan_get_results_handle(this._adapter, i);
@@ -96,20 +106,58 @@ export class Bluetooth extends EventTarget implements IBluetooth {
       const found = options.deviceFound({ id, address, manufacturerData });
       if (found) {
         const rssi = simpleble_peripheral_rssi(d);
-        device = new BluetoothDevice(d, address, id, {
+        const device = new BluetoothDevice(d, address, id, {
           rssi,
           manufacturerData,
         });
-        break;
+        devices.push(device);
+        if (singleDevice) {
+          break;
+        }
       }
       simpleble_peripheral_release_handle(d);
     }
 
-    if (!device) {
+    return devices;
+  }
+
+  /**
+   * Scans for a Bluetooth device.
+   *
+   * Because of limitations in the WebBluetooth standard, this does not comply
+   * with the standard `requestDevice` specification. In the W3C standard,
+   * users manually select a device via a popup, which is obviously not
+   * possible with Deno.
+   */
+  async requestDevice(
+    options: RequestDeviceOptions,
+  ): Promise<IBluetoothDevice> {
+    const devices = await this.request(options, true);
+
+    if (!devices.length) {
       throw new Deno.errors.NotFound("requestDevice error: no devices found");
     }
 
-    this._devices.push(device);
-    return device;
+    this._devices.push(devices[0]);
+    return devices[0];
+  }
+
+  /**
+   * Scans for Bluetooth devices.
+   *
+   * This function is not a part of the WebBluetooth standard. It is made
+   * to allow programs to interact with multiple devices.
+   */
+  async requestDevices(
+    options: RequestDeviceOptions,
+  ): Promise<IBluetoothDevice[]> {
+    const devices = await this.request(options, true);
+
+    if (!devices.length) {
+      throw new Deno.errors.NotFound("requestDevices error: no devices found");
+    }
+
+    this._devices.push(...devices);
+    return devices;
   }
 }

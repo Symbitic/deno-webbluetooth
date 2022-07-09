@@ -1,3 +1,4 @@
+/** @hidden SimpleBLE symbols. */
 export const symbols = {
   simpleble_adapter_get_count: {
     parameters: [],

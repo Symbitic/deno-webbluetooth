@@ -4,9 +4,7 @@ export type UUID = string;
 /** Manufacturer data. */
 export type BluetoothManufacturerDataMap = Map<number, DataView>;
 
-/**
- * Bluetooth advertisement data.
- */
+/** Bluetooth advertisement data. */
 export interface BluetoothAdvertisement {
   rssi: number;
   manufacturerData: BluetoothManufacturerDataMap;
@@ -57,8 +55,8 @@ export interface IBluetoothRemoteGATTCharacteristic extends EventTarget {
     listener: (this: this, ev: Event) => any,
     useCapture?: boolean,
   ): void;
-  // getDescriptor(uuid: UUID): Promise<IBluetoothRemoteGATTDescriptor>;
-  // getDescriptors(uuid?: UUID): Promise<IBluetoothRemoteGATTDescriptor[]>;
+  getDescriptor(uuid: UUID): Promise<IBluetoothRemoteGATTDescriptor>;
+  getDescriptors(uuid?: UUID): Promise<IBluetoothRemoteGATTDescriptor[]>;
   readValue(): Promise<DataView>;
   writeValueWithResponse(value: ArrayBuffer): Promise<void>;
   writeValueWithoutResponse(value: ArrayBuffer): Promise<void>;
@@ -172,6 +170,7 @@ export interface IBluetooth extends EventTarget {
   getAvailability(): Promise<boolean>;
   getDevices(): Promise<IBluetoothDevice[]>;
   requestDevice(options: RequestDeviceOptions): Promise<IBluetoothDevice>;
+  requestDevices(options: RequestDeviceOptions): Promise<IBluetoothDevice[]>;
   readonly referringDevice?: IBluetoothDevice;
   onavailabilitychanged: ((this: IBluetooth, ev: Event) => any) | null;
   addEventListener(

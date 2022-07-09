@@ -5,6 +5,15 @@ WebBluetooth wrapper for Deno using the excellent
 
 **This is not yet complete or compliant with the WebBluetooth standard.**
 
+## Status
+
+Most of the WebBluetooth standard is working, except for descriptors.
+
+Some things are not compatible with the WebBluetooth standard, particularly
+`requestDevice`. The standard calls for the user to select a device manually,
+which is not possible here. Instead, callbacks are used to select which
+device(s) to connect to.
+
 ## Building
 
 Before building SimpleBLE, make sure the submodules are checked out.

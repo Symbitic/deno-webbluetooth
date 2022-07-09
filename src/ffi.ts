@@ -27,12 +27,16 @@ const UUID_STRUCT_SIZE = 37;
 const SERVICE_STRUCT_SIZE = 640;
 const MANUFACTURER_SIZE = 40;
 
+/** @hidden */
 export type Adapter = bigint;
+/** @hidden */
 export type Peripheral = bigint;
+/** @hidden */
 export type Characteristic = bigint;
-export type UserData = bigint | null; // void*
+/** @hidden */
+export type UserData = bigint | null;
 
-/** Bluetooth service. */
+/** A Bluetooth service. */
 export interface Service {
   uuid: string;
   characteristics: string[];
@@ -43,42 +47,6 @@ export interface ManufacturerData {
   id: number;
   data: Uint8Array;
 }
-
-export type OnScanStart = (
-  adapter: Adapter,
-  userdata: UserData,
-) => void;
-export type OnScanStop = (adapter: Adapter, userdata: UserData) => void;
-export type OnScanUpdated = (
-  adapter: Adapter,
-  peripheral: Peripheral,
-  userdata: UserData,
-) => void;
-export type OnScanFound = (
-  adapter: Adapter,
-  peripheral: Peripheral,
-  userdata: UserData,
-) => void;
-export type OnNotify = (
-  service: string,
-  characteristic: string,
-  data: Uint8Array,
-  userdata: UserData,
-) => void;
-export type OnIndicate = (
-  service: string,
-  characteristic: string,
-  data: Uint8Array,
-  userdata: UserData,
-) => void;
-export type OnConnected = (
-  peripheral: Peripheral,
-  userdata: UserData,
-) => void;
-export type OnDisconnected = (
-  peripheral: Peripheral,
-  userdata: UserData,
-) => void;
 
 function encodeString(str: string, bufSize = 0): Uint8Array {
   const encoder = new TextEncoder();
@@ -115,15 +83,19 @@ try {
   throw error;
 }
 
+/** Returns the number of adapters found. */
 export function simpleble_adapter_get_count(): bigint {
   return lib.symbols.simpleble_adapter_get_count();
 }
+/** Get a handle for an adapter. */
 export function simpleble_adapter_get_handle(index: number): Adapter {
   return lib.symbols.simpleble_adapter_get_handle(index);
 }
+/** Release an adapter. */
 export function simpleble_adapter_release_handle(handle: Adapter): void {
   lib.symbols.simpleble_adapter_release_handle(handle);
 }
+/** Returns the name of an adapter. */
 export function simpleble_adapter_identifier(handle: Adapter): string {
   const ptr = lib.symbols.simpleble_adapter_identifier(handle);
   const view = new Deno.UnsafePointerView(ptr);
@@ -131,6 +103,7 @@ export function simpleble_adapter_identifier(handle: Adapter): string {
   simpleble_free(ptr);
   return cstr;
 }
+/** Returns the MAC address of an adapter. */
 export function simpleble_adapter_address(handle: Adapter): string {
   const ret = lib.symbols.simpleble_adapter_address(handle);
   const view = new Deno.UnsafePointerView(ret);
@@ -138,14 +111,17 @@ export function simpleble_adapter_address(handle: Adapter): string {
   simpleble_free(ret);
   return cstr;
 }
+/** Begin scanning. */
 export function simpleble_adapter_scan_start(handle: Adapter): boolean {
   const ret = lib.symbols.simpleble_adapter_scan_start(handle);
   return ret > 0 ? false : true;
 }
+/** Stop scanning. */
 export function simpleble_adapter_scan_stop(handle: Adapter): boolean {
   const ret = lib.symbols.simpleble_adapter_scan_stop(handle);
   return ret > 0 ? false : true;
 }
+/** Returns the scanning status. */
 export function simpleble_adapter_scan_is_active(handle: Adapter): boolean {
   const isActive = new Uint8Array(1);
   const ret = lib.symbols.simpleble_adapter_scan_is_active(handle, isActive);
@@ -155,22 +131,26 @@ export function simpleble_adapter_scan_is_active(handle: Adapter): boolean {
   const active = isActive[0];
   return Boolean(active);
 }
+/** Returns the number of devices found. */
 export function simpleble_adapter_scan_get_results_count(
   handle: Adapter,
 ): bigint {
   return lib.symbols.simpleble_adapter_scan_get_results_count(handle);
 }
+/** Returns a handle for a peripheral device. */
 export function simpleble_adapter_scan_get_results_handle(
   handle: Adapter,
   index: number,
 ): Peripheral {
   return lib.symbols.simpleble_adapter_scan_get_results_handle(handle, index);
 }
+/** Returns the number of paired devices. */
 export function simpleble_adapter_get_paired_peripherals_count(
   handle: Adapter,
 ): bigint {
   return lib.symbols.simpleble_adapter_get_paired_peripherals_count(handle);
 }
+/** Returns a handle to a paired device. */
 export function simpleble_adapter_get_paired_peripherals_handle(
   handle: Adapter,
   index: number,
@@ -180,9 +160,103 @@ export function simpleble_adapter_get_paired_peripherals_handle(
     index,
   );
 }
+/** Register a callback for when a peripheral is found. */
+export function simpleble_adapter_set_callback_on_scan_found(
+  handle: Adapter,
+  cb: (adapter: Adapter, peripheral: Peripheral, userdata: UserData) => void,
+  userdata: UserData = null,
+): boolean {
+  const cbResource = new Deno.UnsafeCallback(
+    {
+      parameters: ["pointer", "pointer", "pointer"],
+      result: "void",
+    },
+    (handlePtr: bigint, peripheralPtr: bigint, userdataPtr: bigint) => {
+      cb(handlePtr, peripheralPtr, userdataPtr);
+    },
+  );
+  const ret = lib.symbols.simpleble_adapter_set_callback_on_scan_found(
+    handle,
+    cbResource.pointer,
+    userdata,
+  );
+  return ret > 0 ? false : true;
+}
+
+/** Register a callback for when scanning begins. */
+export function simpleble_adapter_set_callback_on_scan_start(
+  handle: Adapter,
+  cb: (adapter: Adapter, userdata: UserData) => void,
+  userdata: UserData = null,
+): boolean {
+  const cbResource = new Deno.UnsafeCallback(
+    {
+      parameters: ["pointer", "pointer"],
+      result: "void",
+    },
+    (handlePtr: bigint, userdataPtr: bigint) => {
+      cb(handlePtr, userdataPtr);
+    },
+  );
+  const ret = lib.symbols.simpleble_adapter_set_callback_on_scan_start(
+    handle,
+    cbResource.pointer,
+    userdata,
+  );
+  return ret > 0 ? false : true;
+}
+
+/** Register a callback for when scanning stops. */
+export function simpleble_adapter_set_callback_on_scan_stop(
+  handle: Adapter,
+  cb: (adapter: Adapter, userdata: UserData) => void,
+  userdata: UserData = null,
+): boolean {
+  const cbResource = new Deno.UnsafeCallback(
+    {
+      parameters: ["pointer", "pointer"],
+      result: "void",
+    },
+    (handlePtr: bigint, userdataPtr: bigint) => {
+      cb(handlePtr, userdataPtr);
+    },
+  );
+  const ret = lib.symbols.simpleble_adapter_set_callback_on_scan_stop(
+    handle,
+    cbResource.pointer,
+    userdata,
+  );
+  return ret > 0 ? false : true;
+}
+
+/** Register a callback for when an adapter is updated. */
+export function simpleble_adapter_set_callback_on_scan_updated(
+  handle: Adapter,
+  cb: (adapter: Adapter, peripheral: Peripheral, userdata: UserData) => void,
+  userdata: UserData = null,
+): boolean {
+  const cbResource = new Deno.UnsafeCallback(
+    {
+      parameters: ["pointer", "pointer", "pointer"],
+      result: "void",
+    },
+    (handlePtr: bigint, peripheralPtr: bigint, userdataPtr: bigint) => {
+      cb(handlePtr, peripheralPtr, userdataPtr);
+    },
+  );
+  const ret = lib.symbols.simpleble_adapter_set_callback_on_scan_updated(
+    handle,
+    cbResource.pointer,
+    userdata,
+  );
+  return ret > 0 ? false : true;
+}
+
+/** Releases a peripheral device handle. */
 export function simpleble_peripheral_release_handle(handle: Peripheral): void {
   lib.symbols.simpleble_peripheral_release_handle(handle);
 }
+/** Returns the ID of a peripheral. */
 export function simpleble_peripheral_identifier(handle: Peripheral): string {
   const ret = lib.symbols.simpleble_peripheral_identifier(handle);
   const view = new Deno.UnsafePointerView(ret);
@@ -190,6 +264,7 @@ export function simpleble_peripheral_identifier(handle: Peripheral): string {
   simpleble_free(ret);
   return cstr;
 }
+/** Returns the MAC address of a peripheral. */
 export function simpleble_peripheral_address(handle: Peripheral): string {
   const ret = lib.symbols.simpleble_peripheral_address(handle);
   const view = new Deno.UnsafePointerView(ret);
@@ -197,22 +272,27 @@ export function simpleble_peripheral_address(handle: Peripheral): string {
   simpleble_free(ret);
   return cstr;
 }
+/** Returns the RSSI (signal strength) of a peripheral. */
 export function simpleble_peripheral_rssi(handle: Peripheral): number {
   return lib.symbols.simpleble_peripheral_rssi(handle);
 }
+/** Begins connecting to a peripheral. */
 export function simpleble_peripheral_connect(handle: Peripheral): boolean {
   const ret = lib.symbols.simpleble_peripheral_connect(handle);
   return ret > 0 ? false : true;
 }
+/** Disconnects from a peripheral. */
 export function simpleble_peripheral_disconnect(handle: Peripheral): boolean {
   const ret = lib.symbols.simpleble_peripheral_disconnect(handle);
   return ret > 0 ? false : true;
 }
+/** Returns true if a peripheral is currently connected. */
 export function simpleble_peripheral_is_connected(handle: Peripheral): boolean {
   const result = new Uint8Array(1);
   const ret = lib.symbols.simpleble_peripheral_is_connected(handle, result);
   return ret === 0 && Boolean(result[0]);
 }
+/** Returns true if a peripheral can be connected to. */
 export function simpleble_peripheral_is_connectable(
   handle: Peripheral,
 ): boolean {
@@ -220,21 +300,25 @@ export function simpleble_peripheral_is_connectable(
   const ret = lib.symbols.simpleble_peripheral_is_connectable(handle, result);
   return ret === 0 && Boolean(result[0]);
 }
+/** Returns true if a peripheral is already paired. */
 export function simpleble_peripheral_is_paired(handle: Peripheral): boolean {
   const result = new Uint8Array(1);
   const ret = lib.symbols.simpleble_peripheral_is_paired(handle, result);
   return ret === 0 && Boolean(result[0]);
 }
+/** Unpair a peripheral. */
 export function simpleble_peripheral_unpair(handle: Peripheral): boolean {
   const ret = lib.symbols.simpleble_peripheral_unpair(handle);
   return ret > 0 ? false : true;
 }
+/** Returns the number of services a peripheral has. */
 export function simpleble_peripheral_services_count(
   handle: Peripheral,
 ): bigint {
   return lib.symbols.simpleble_peripheral_services_count(handle);
 }
 
+/** Returns a [[Service]] found on a peripheral. */
 export function simpleble_peripheral_services_get(
   handle: Peripheral,
   index: number,
@@ -271,12 +355,14 @@ export function simpleble_peripheral_services_get(
   return { uuid, characteristics };
 }
 
+/** Returns the size of the manufacturer data. */
 export function simpleble_peripheral_manufacturer_data_count(
   handle: Peripheral,
 ): bigint {
   return lib.symbols.simpleble_peripheral_manufacturer_data_count(handle);
 }
 
+/** Returns the manufacturer data for device. */
 export function simpleble_peripheral_manufacturer_data_get(
   handle: Peripheral,
   index: number,
@@ -304,6 +390,7 @@ export function simpleble_peripheral_manufacturer_data_get(
   return { id, data };
 }
 
+/** Read data from a service characteristic. */
 export function simpleble_peripheral_read(
   handle: Peripheral,
   service: string,
@@ -333,6 +420,7 @@ export function simpleble_peripheral_read(
   return data;
 }
 
+/** Write data to a characteristic (no response). */
 export function simpleble_peripheral_write_request(
   handle: Peripheral,
   service: string,
@@ -354,6 +442,7 @@ export function simpleble_peripheral_write_request(
   return true;
 }
 
+/** Write data to a characteristic (response required). */
 export function simpleble_peripheral_write_command(
   handle: Peripheral,
   service: string,
@@ -375,6 +464,7 @@ export function simpleble_peripheral_write_command(
   return true;
 }
 
+/** Stop listening for characteristic value changes. */
 export function simpleble_peripheral_unsubscribe(
   handle: Peripheral,
   service: string,
@@ -393,104 +483,17 @@ export function simpleble_peripheral_unsubscribe(
   return true;
 }
 
-export function simpleble_free(handle: bigint): void {
-  lib.symbols.simpleble_free(handle);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-export function simpleble_adapter_set_callback_on_scan_found(
-  handle: Adapter,
-  cb: OnScanFound,
-  userdata: UserData = null,
-): boolean {
-  const cbResource = new Deno.UnsafeCallback(
-    {
-      parameters: ["pointer", "pointer", "pointer"],
-      result: "void",
-    },
-    (handlePtr: bigint, peripheralPtr: bigint, userdataPtr: bigint) => {
-      cb(handlePtr, peripheralPtr, userdataPtr);
-    },
-  );
-  const ret = lib.symbols.simpleble_adapter_set_callback_on_scan_found(
-    handle,
-    cbResource.pointer,
-    userdata,
-  );
-  return ret > 0 ? false : true;
-}
-
-export function simpleble_adapter_set_callback_on_scan_start(
-  handle: Adapter,
-  cb: OnScanStart,
-  userdata: UserData = null,
-): boolean {
-  const cbResource = new Deno.UnsafeCallback(
-    {
-      parameters: ["pointer", "pointer"],
-      result: "void",
-    },
-    (handlePtr: bigint, userdataPtr: bigint) => {
-      cb(handlePtr, userdataPtr);
-    },
-  );
-  const ret = lib.symbols.simpleble_adapter_set_callback_on_scan_start(
-    handle,
-    cbResource.pointer,
-    userdata,
-  );
-  return ret > 0 ? false : true;
-}
-
-export function simpleble_adapter_set_callback_on_scan_stop(
-  handle: Adapter,
-  cb: OnScanStop,
-  userdata: UserData = null,
-): boolean {
-  const cbResource = new Deno.UnsafeCallback(
-    {
-      parameters: ["pointer", "pointer"],
-      result: "void",
-    },
-    (handlePtr: bigint, userdataPtr: bigint) => {
-      cb(handlePtr, userdataPtr);
-    },
-  );
-  const ret = lib.symbols.simpleble_adapter_set_callback_on_scan_stop(
-    handle,
-    cbResource.pointer,
-    userdata,
-  );
-  return ret > 0 ? false : true;
-}
-export function simpleble_adapter_set_callback_on_scan_updated(
-  handle: Adapter,
-  cb: OnScanUpdated,
-  userdata: UserData = null,
-): boolean {
-  const cbResource = new Deno.UnsafeCallback(
-    {
-      parameters: ["pointer", "pointer", "pointer"],
-      result: "void",
-    },
-    (handlePtr: bigint, peripheralPtr: bigint, userdataPtr: bigint) => {
-      cb(handlePtr, peripheralPtr, userdataPtr);
-    },
-  );
-  const ret = lib.symbols.simpleble_adapter_set_callback_on_scan_updated(
-    handle,
-    cbResource.pointer,
-    userdata,
-  );
-  return ret > 0 ? false : true;
-}
-
+/** Register a callback for peripheral indications. */
 export function simpleble_peripheral_indicate(
   handle: Peripheral,
   service: string,
   characteristic: string,
-  cb: OnIndicate,
+  cb: (
+    service: string,
+    characteristic: string,
+    data: Uint8Array,
+    userdata: UserData,
+  ) => void,
   userdata: UserData = null,
 ): boolean {
   const cbResource = new Deno.UnsafeCallback(
@@ -525,11 +528,17 @@ export function simpleble_peripheral_indicate(
   return ret > 0 ? false : true;
 }
 
+/** Register a callback for peripheral notifications. */
 export function simpleble_peripheral_notify(
   handle: Peripheral,
   service: string,
   characteristic: string,
-  cb: OnNotify,
+  cb: (
+    service: string,
+    characteristic: string,
+    data: Uint8Array,
+    userdata: UserData,
+  ) => void,
   userdata: UserData = null,
 ): boolean {
   const cbResource = new Deno.UnsafeCallback(
@@ -563,9 +572,11 @@ export function simpleble_peripheral_notify(
   );
   return ret > 0 ? false : true;
 }
+
+/** Register a callback for when a peripheral is connected. */
 export function simpleble_peripheral_set_callback_on_connected(
   handle: Peripheral,
-  cb: OnConnected,
+  cb: (peripheral: Peripheral, userdata: UserData) => void,
   userdata: UserData = null,
 ): boolean {
   const cbResource = new Deno.UnsafeCallback(
@@ -584,9 +595,11 @@ export function simpleble_peripheral_set_callback_on_connected(
   );
   return ret > 0 ? false : true;
 }
+
+/** Register a callback for when a peripheral is disconnected. */
 export function simpleble_peripheral_set_callback_on_disconnected(
   handle: Peripheral,
-  cb: OnDisconnected,
+  cb: (peripheral: Peripheral, userdata: UserData) => void,
   userdata: UserData = null,
 ): boolean {
   const cbResource = new Deno.UnsafeCallback(
@@ -604,4 +617,9 @@ export function simpleble_peripheral_set_callback_on_disconnected(
     userdata,
   );
   return ret > 0 ? false : true;
+}
+
+/** Deallocate memory for a SimpleBLE-C handle. */
+export function simpleble_free(handle: bigint): void {
+  lib.symbols.simpleble_free(handle);
 }
