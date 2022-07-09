@@ -1,5 +1,7 @@
 # Deno-WebBluetooth
 
+[![documentation](https://doc.deno.land/badge.svg)](https://doc.deno.land/https://deno.land/x/webbluetooth/mod.ts)
+
 WebBluetooth wrapper for Deno using the excellent
 [SimpleBLE](https://github.com/OpenBluetoothToolbox/SimpleBLE) library.
 
