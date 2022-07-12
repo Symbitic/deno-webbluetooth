@@ -19,24 +19,26 @@ import type {
   BluetoothManufacturerDataMap,
   IBluetooth,
   IBluetoothDevice,
+  RequestDeviceInfo,
   RequestDeviceOptions,
 } from "./interfaces.ts";
 import type { Adapter } from "./ffi.ts";
 
 /**
- * Interface for creating [[BluetoothDevice]] objects.
+ * Interface for creating {@link BluetoothDevice} objects.
  */
 export class Bluetooth extends EventTarget implements IBluetooth {
-  private _adapter: Adapter;
-  private _devices: IBluetoothDevice[];
-  private _onavailabilitychanged?: (ev: Event) => void;
+  #adapter: Adapter;
+  #devices: IBluetoothDevice[];
+  #onavailabilitychanged?: (ev: Event) => void;
 
   /** Since Deno cannot navigate by Bluetooth URL, this will never be present. */
   readonly referringDevice?: IBluetoothDevice = undefined;
 
+  /** @hidden */
   constructor() {
     super();
-    this._devices = [];
+    this.#devices = [];
 
     // NOTE: a global `bluetooth` variable cannot be exported while the
     // constructor throws an error. Maybe move this.
@@ -45,7 +47,7 @@ export class Bluetooth extends EventTarget implements IBluetooth {
       throw new Deno.errors.NotFound("requestDevice error: no adapters found");
     }
 
-    this._adapter = simpleble_adapter_get_handle(0);
+    this.#adapter = simpleble_adapter_get_handle(0);
 
     this.dispatchEvent(new Event("availabilitychanged"));
   }
@@ -53,14 +55,14 @@ export class Bluetooth extends EventTarget implements IBluetooth {
   /** Event handler for the `availabilitychanged` event. */
   // deno-lint-ignore explicit-module-boundary-types
   set onavailabilitychanged(fn: (ev: Event) => void) {
-    if (this._onavailabilitychanged) {
+    if (this.#onavailabilitychanged) {
       this.removeEventListener(
         "availabilitychanged",
-        this._onavailabilitychanged,
+        this.#onavailabilitychanged,
       );
     }
-    this._onavailabilitychanged = fn;
-    this.addEventListener("availabilitychanged", this._onavailabilitychanged);
+    this.#onavailabilitychanged = fn;
+    this.addEventListener("availabilitychanged", this.#onavailabilitychanged);
   }
 
   /** Determines if a working Bluetooth adapter is usable. */
@@ -71,28 +73,73 @@ export class Bluetooth extends EventTarget implements IBluetooth {
 
   /** Returns a list of every device requested thus far. */
   getDevices(): Promise<IBluetoothDevice[]> {
-    return Promise.resolve(this._devices);
+    return Promise.resolve(this.#devices);
   }
 
-  /** @hidden */
-  private async request(
+  /** Scans for Bluetooth devices. */
+  async *scan(
+    deviceFound: (device: RequestDeviceInfo) => boolean,
+  ): AsyncIterableIterator<IBluetoothDevice> {
+    const timeout = 200;
+    const ids: string[] = [];
+    while (true) {
+      simpleble_adapter_scan_start(this.#adapter);
+      await delay(timeout);
+      simpleble_adapter_scan_stop(this.#adapter);
+
+      const resultsCount = simpleble_adapter_scan_get_results_count(
+        this.#adapter,
+      );
+
+      for (let i = 0; i < resultsCount; i++) {
+        const d = simpleble_adapter_scan_get_results_handle(this.#adapter, i);
+        const id = simpleble_peripheral_identifier(d);
+        if (ids.includes(id)) {
+          simpleble_peripheral_release_handle(d);
+          continue;
+        }
+        const address = simpleble_peripheral_address(d);
+        const count = simpleble_peripheral_manufacturer_data_count(d);
+        const manufacturerData: BluetoothManufacturerDataMap = new Map();
+        for (let j = 0; j < count; j++) {
+          const data = simpleble_peripheral_manufacturer_data_get(d, j);
+          if (data) {
+            manufacturerData.set(data.id, new DataView(data.data.buffer));
+          }
+        }
+        const found = deviceFound({ id, address, manufacturerData });
+        if (found) {
+          const rssi = simpleble_peripheral_rssi(d);
+          const device = new BluetoothDevice(d, address, id, {
+            rssi,
+            manufacturerData,
+          });
+          ids.push(id);
+          yield device;
+        }
+        simpleble_peripheral_release_handle(d);
+      }
+    }
+  }
+
+  async #request(
     options: RequestDeviceOptions,
     singleDevice: boolean,
   ): Promise<IBluetoothDevice[]> {
     const timeout = options.timeout ?? 5000;
 
-    simpleble_adapter_scan_start(this._adapter);
+    simpleble_adapter_scan_start(this.#adapter);
     await delay(timeout);
-    simpleble_adapter_scan_stop(this._adapter);
+    simpleble_adapter_scan_stop(this.#adapter);
 
     const resultsCount = simpleble_adapter_scan_get_results_count(
-      this._adapter,
+      this.#adapter,
     );
 
     const devices: IBluetoothDevice[] = [];
 
     for (let i = 0; i < resultsCount; i++) {
-      const d = simpleble_adapter_scan_get_results_handle(this._adapter, i);
+      const d = simpleble_adapter_scan_get_results_handle(this.#adapter, i);
       const id = simpleble_peripheral_identifier(d);
       const address = simpleble_peripheral_address(d);
       const count = simpleble_peripheral_manufacturer_data_count(d);
@@ -132,13 +179,13 @@ export class Bluetooth extends EventTarget implements IBluetooth {
   async requestDevice(
     options: RequestDeviceOptions,
   ): Promise<IBluetoothDevice> {
-    const devices = await this.request(options, true);
+    const devices = await this.#request(options, true);
 
     if (!devices.length) {
       throw new Deno.errors.NotFound("requestDevice error: no devices found");
     }
 
-    this._devices.push(devices[0]);
+    this.#devices.push(devices[0]);
     return devices[0];
   }
 
@@ -151,13 +198,13 @@ export class Bluetooth extends EventTarget implements IBluetooth {
   async requestDevices(
     options: RequestDeviceOptions,
   ): Promise<IBluetoothDevice[]> {
-    const devices = await this.request(options, true);
+    const devices = await this.#request(options, true);
 
     if (!devices.length) {
       throw new Deno.errors.NotFound("requestDevices error: no devices found");
     }
 
-    this._devices.push(...devices);
+    this.#devices.push(...devices);
     return devices;
   }
 }
