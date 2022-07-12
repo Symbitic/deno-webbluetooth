@@ -27,13 +27,13 @@ const UUID_STRUCT_SIZE = 37;
 const SERVICE_STRUCT_SIZE = 640;
 const MANUFACTURER_SIZE = 40;
 
-/** @hidden */
+/** SimpleBLE Adapter. */
 export type Adapter = bigint;
-/** @hidden */
+/** SimpleBLE Peripheral. */
 export type Peripheral = bigint;
-/** @hidden */
+/** SimpleBLE Characteristic. */
 export type Characteristic = bigint;
-/** @hidden */
+/** SimpleBLE UserData. */
 export type UserData = bigint | null;
 
 /** A Bluetooth service. */
@@ -110,6 +110,18 @@ export function simpleble_adapter_address(handle: Adapter): string {
   const cstr = view.getCString();
   simpleble_free(ret);
   return cstr;
+}
+/**
+ * Begin scanning (with timeout).
+ *
+ * NOTE: This function blocks until the timeout is reached.
+ */
+export function simpleble_adapter_scan_for(
+  handle: Adapter,
+  timeoutMs: number,
+): boolean {
+  const ret = lib.symbols.simpleble_adapter_scan_for(handle, timeoutMs);
+  return ret > 0 ? false : true;
 }
 /** Begin scanning. */
 export function simpleble_adapter_scan_start(handle: Adapter): boolean {

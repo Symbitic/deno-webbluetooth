@@ -1,7 +1,7 @@
 /** 128-bit UUID string. */
 export type UUID = string;
 
-/** Manufacturer data. */
+/** Bluetooth manufacturer data. */
 export type BluetoothManufacturerDataMap = Map<number, DataView>;
 
 /** Bluetooth advertisement data. */
@@ -11,8 +11,7 @@ export interface BluetoothAdvertisement {
 }
 
 /**
- * See also:
- *     + https://developer.mozilla.org/en-US/docs/Web/API/BluetoothCharacteristicProperties
+ * {@link https://developer.mozilla.org/en-US/docs/Web/API/BluetoothCharacteristicProperties BluetoothCharacteristicProperties} interface.
  */
 export interface BluetoothCharacteristicProperties {
   readonly authenticatedSignedWrites: boolean;
@@ -26,10 +25,7 @@ export interface BluetoothCharacteristicProperties {
 }
 
 /**
- * See also:
- *     + https://developer.mozilla.org/en-US/docs/Web/API/BluetoothRemoteGATTDescriptor
- *     + https://github.com/thegecko/webbluetooth/blob/master/src/descriptor.ts
- *     + https://github.com/IjzerenHein/node-web-bluetooth/blob/master/src/BluetoothRemoteGATTDescriptor.js
+ * {@link https://developer.mozilla.org/en-US/docs/Web/API/BluetoothRemoteGATTDescriptor BluetoothRemoteGATTDescriptor} interface.
  */
 export interface IBluetoothRemoteGATTDescriptor {
   readonly uuid: string;
@@ -40,9 +36,7 @@ export interface IBluetoothRemoteGATTDescriptor {
 }
 
 /**
- * See also:
- *     + https://developer.mozilla.org/en-US/docs/Web/API/BluetoothRemoteGATTCharacteristic
- *     + https://github.com/IjzerenHein/node-web-bluetooth/blob/master/src/BluetoothRemoteGATTCharacteristic.js
+ * {@link https://developer.mozilla.org/en-US/docs/Web/API/BluetoothRemoteGATTCharacteristic BluetoothRemoteGATTCharacteristic} interface.
  */
 export interface IBluetoothRemoteGATTCharacteristic extends EventTarget {
   readonly uuid: string;
@@ -65,9 +59,7 @@ export interface IBluetoothRemoteGATTCharacteristic extends EventTarget {
 }
 
 /**
- * See also:
- *     + https://developer.mozilla.org/en-US/docs/Web/API/BluetoothRemoteGATTService
- *     + https://github.com/IjzerenHein/node-web-bluetooth/blob/master/src/BluetoothRemoteGATTService.js
+ * {@link https://developer.mozilla.org/en-US/docs/Web/API/BluetoothRemoteGATTService BluetoothRemoteGATTService} interface.
  */
 export interface IBluetoothRemoteGATTService extends EventTarget {
   readonly uuid: string;
@@ -95,8 +87,7 @@ export interface IBluetoothRemoteGATTService extends EventTarget {
 }
 
 /**
- * See also:
- *     + https://developer.mozilla.org/en-US/docs/Web/API/BluetoothRemoteGATTServer
+ * {@link https://developer.mozilla.org/en-US/docs/Web/API/BluetoothRemoteGATTServer BluetoothRemoteGATTServer} interface.
  */
 export interface IBluetoothRemoteGATTServer {
   readonly connected: boolean;
@@ -108,8 +99,7 @@ export interface IBluetoothRemoteGATTServer {
 }
 
 /**
- * See also:
- *     + https://developer.mozilla.org/en-US/docs/Web/API/BluetoothDevice
+ * {@link https://developer.mozilla.org/en-US/docs/Web/API/BluetoothDevice BluetoothDevice} interface.
  */
 export interface IBluetoothDevice extends EventTarget {
   readonly id: string;
@@ -138,18 +128,14 @@ export interface IBluetoothDevice extends EventTarget {
   ): void;
 }
 
-/**
- * Information from SimpleBLE before connecting.
- */
+/** Information from SimpleBLE before connecting. */
 export interface RequestDeviceInfo {
   id: string;
   address: string;
   manufacturerData: BluetoothManufacturerDataMap;
 }
 
-/**
- * https://webbluetoothcg.github.io/web-bluetooth/#device-discovery
- */
+/** Options for controlling device scanning. */
 export interface RequestDeviceOptions {
   /** Select which device to return */
   deviceFound: (device: RequestDeviceInfo) => boolean;
@@ -158,13 +144,7 @@ export interface RequestDeviceOptions {
 }
 
 /**
- * The Bluetooth interface.
- *
- * @TODO ValueEvent for "availabilitychanged"
- *
- * See also:
- *     + https://developer.mozilla.org/en-US/docs/Web/API/Bluetooth
- *     + https://github.com/thegecko/webbluetooth/blob/master/src/bluetooth.ts
+ * {@link https://developer.mozilla.org/en-US/docs/Web/API/Bluetooth Bluetooth} interface.
  */
 export interface IBluetooth extends EventTarget {
   getAvailability(): Promise<boolean>;

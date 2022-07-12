@@ -20,6 +20,10 @@ export const symbols = {
     parameters: ["pointer"],
     result: "pointer",
   },
+  simpleble_adapter_scan_for: {
+    parameters: ["pointer", "i32"],
+    result: "u32",
+  },
   simpleble_adapter_scan_start: {
     parameters: ["pointer"],
     result: "u32",

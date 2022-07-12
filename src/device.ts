@@ -11,27 +11,27 @@ import type {
  * Represents a single Bluetooth device.
  */
 export class BluetoothDevice extends EventTarget implements IBluetoothDevice {
-  private _peripheral: Peripheral;
-  private _gatt: BluetoothRemoteGATTServer;
-  private _adData: BluetoothAdvertisement;
+  #peripheral: Peripheral;
+  #gatt: BluetoothRemoteGATTServer;
+  #adData: BluetoothAdvertisement;
 
   /** Unique ID identifying this device. */
   readonly id: string;
+  /** Device name (may be empty). */
   readonly name: string;
 
   /** Device data. */
   get advertisement(): BluetoothAdvertisement {
-    return this._adData;
+    return this.#adData;
   }
 
-  /** This device's [[BluetoothRemoteGATTServer]]. */
+  /** This device's BluetoothRemoteGATTServer. */
   get gatt(): IBluetoothRemoteGATTServer {
-    return this._gatt;
+    return this.#gatt;
   }
 
-  /** @hidden */
-  _setAdData(adData: BluetoothAdvertisement, emit?: boolean): void {
-    this._adData = adData;
+  #setAdData(adData: BluetoothAdvertisement, emit?: boolean): void {
+    this.#adData = adData;
     if (emit) {
       this.dispatchEvent(new Event("advertisementreceived"));
     }
@@ -45,12 +45,12 @@ export class BluetoothDevice extends EventTarget implements IBluetoothDevice {
     adData: BluetoothAdvertisement,
   ) {
     super();
-    this._peripheral = peripheral;
+    this.#peripheral = peripheral;
     this.id = id;
     this.name = name;
-    this._adData = adData;
-    this._gatt = new BluetoothRemoteGATTServer(this, this._peripheral);
-    this._setAdData(adData, true);
+    this.#adData = adData;
+    this.#gatt = new BluetoothRemoteGATTServer(this, this.#peripheral);
+    this.#setAdData(adData, true);
   }
 
   /** This unstable specification is not implemented yet. */

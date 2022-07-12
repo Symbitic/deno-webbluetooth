@@ -29,24 +29,24 @@ import type {
  */
 export class BluetoothRemoteGATTDescriptor extends EventTarget
   implements IBluetoothRemoteGATTDescriptor {
-  private _peripheral: Peripheral;
-  private _value?: Uint8Array;
-  private _char: IBluetoothRemoteGATTCharacteristic;
+  #peripheral: Peripheral;
+  #value?: Uint8Array;
+  #char: IBluetoothRemoteGATTCharacteristic;
 
   /** The UUID of this descriptor. */
   readonly uuid: string;
 
   /** The characteristic this descriptor belongs to. */
   get characteristic(): IBluetoothRemoteGATTCharacteristic {
-    return this._char;
+    return this.#char;
   }
 
   /** The current descriptor value. */
   get value(): ArrayBuffer {
-    if (!this._value) {
+    if (!this.#value) {
       throw new Deno.errors.InvalidData("Descriptor value not available yet");
     }
-    return this._value.buffer;
+    return this.#value.buffer;
   }
 
   /** @hidden */
@@ -56,8 +56,8 @@ export class BluetoothRemoteGATTDescriptor extends EventTarget
     uuid: string,
   ) {
     super();
-    this._peripheral = peripheral;
-    this._char = char;
+    this.#peripheral = peripheral;
+    this.#char = char;
     this.uuid = uuid;
   }
 
@@ -81,10 +81,10 @@ export class BluetoothRemoteGATTDescriptor extends EventTarget
  */
 export class BluetoothRemoteGATTCharacteristic extends EventTarget
   implements IBluetoothRemoteGATTCharacteristic {
-  private _peripheral: Peripheral;
-  private _service: BluetoothRemoteGATTService;
-  private _oncharacteristicvaluechanged?: (ev: Event) => void;
-  private _value?: DataView;
+  #peripheral: Peripheral;
+  #service: BluetoothRemoteGATTService;
+  #oncharacteristicvaluechanged?: (ev: Event) => void;
+  #value?: DataView;
 
   /** The UUID of this characteristic */
   readonly uuid: string;
@@ -96,15 +96,15 @@ export class BluetoothRemoteGATTCharacteristic extends EventTarget
     uuid: string,
   ) {
     super();
-    this._peripheral = peripheral;
-    this._service = service;
-    this._value = undefined;
+    this.#peripheral = peripheral;
+    this.#service = service;
+    this.#value = undefined;
     this.uuid = uuid;
   }
 
-  /** The [[BluetoothRemoteGATTService]] this characteristic belongs to. */
+  /** The {@link BluetoothRemoteGATTService} this characteristic belongs to. */
   get service(): IBluetoothRemoteGATTService {
-    return this._service;
+    return this.#service;
   }
 
   /** Read-only properties of this characteristic. */
@@ -128,28 +128,28 @@ export class BluetoothRemoteGATTCharacteristic extends EventTarget
    * updated via a notification or indication.
    */
   get value(): DataView | undefined {
-    return this._value;
+    return this.#value;
   }
 
   /** Event handler for the `characteristicvaluechanged` event. */
   // deno-lint-ignore explicit-module-boundary-types
   set oncharacteristicvaluechanged(fn: (ev: Event) => void) {
-    if (this._oncharacteristicvaluechanged) {
+    if (this.#oncharacteristicvaluechanged) {
       this.removeEventListener(
         "characteristicvaluechanged",
-        this._oncharacteristicvaluechanged,
+        this.#oncharacteristicvaluechanged,
       );
     }
-    this._oncharacteristicvaluechanged = fn;
+    this.#oncharacteristicvaluechanged = fn;
     this.addEventListener(
       "characteristicvaluechanged",
-      this._oncharacteristicvaluechanged,
+      this.#oncharacteristicvaluechanged,
     );
   }
 
-  /** @hidden Update the value and emit events. */
-  private setValue(value?: DataView, emit?: boolean): void {
-    this._value = value;
+  /** Update the value and emit events. */
+  #setValue(value?: DataView, emit?: boolean): void {
+    this.#value = value;
     if (emit) {
       this.dispatchEvent(new Event("characteristicvaluechanged"));
       this.service.dispatchEvent(new Event("characteristicvaluechanged"));
@@ -167,9 +167,7 @@ export class BluetoothRemoteGATTCharacteristic extends EventTarget
         "getDescriptor error: device not connected",
       );
     } else if (!uuid) {
-      //Deno.errors.NotSupported
-      Deno.errors.NotConnected;
-      Deno.errors.InvalidData;
+      throw new Error("No UUID given");
     }
 
     const descriptors = await this.getDescriptors(uuid);
@@ -183,7 +181,6 @@ export class BluetoothRemoteGATTCharacteristic extends EventTarget
 
   /** Resolves multiple descriptors. */
   getDescriptors(_uuid?: string): Promise<IBluetoothRemoteGATTDescriptor[]> {
-    const _descriptors: IBluetoothRemoteGATTDescriptor[] = [];
     if (!this.service.device.gatt.connected) {
       throw new Deno.errors.NotConnected(
         "getDescriptors error: device not connected",
@@ -195,7 +192,7 @@ export class BluetoothRemoteGATTCharacteristic extends EventTarget
   /** Returns the current value */
   readValue(): Promise<DataView> {
     const buffer = simpleble_peripheral_read(
-      this._peripheral,
+      this.#peripheral,
       this.service.uuid,
       this.uuid,
     );
@@ -203,7 +200,7 @@ export class BluetoothRemoteGATTCharacteristic extends EventTarget
       throw new Error("readValue error: unable to read data");
     }
     const view = new DataView(buffer);
-    this.setValue(view, true);
+    this.#setValue(view, true);
     return Promise.resolve(view);
   }
 
@@ -211,7 +208,7 @@ export class BluetoothRemoteGATTCharacteristic extends EventTarget
   writeValueWithResponse(value: ArrayBuffer): Promise<void> {
     const data = new Uint8Array(value);
     const ret = simpleble_peripheral_write_command(
-      this._peripheral,
+      this.#peripheral,
       this.service.uuid,
       this.uuid,
       data,
@@ -220,7 +217,7 @@ export class BluetoothRemoteGATTCharacteristic extends EventTarget
       throw new Error("writeValueWithResponse error: command failed");
     }
     const view = new DataView(value);
-    this.setValue(view, false);
+    this.#setValue(view, false);
     return Promise.resolve();
   }
 
@@ -228,7 +225,7 @@ export class BluetoothRemoteGATTCharacteristic extends EventTarget
   writeValueWithoutResponse(value: ArrayBuffer): Promise<void> {
     const data = new Uint8Array(value);
     const ret = simpleble_peripheral_write_request(
-      this._peripheral,
+      this.#peripheral,
       this.service.uuid,
       this.uuid,
       data,
@@ -237,7 +234,7 @@ export class BluetoothRemoteGATTCharacteristic extends EventTarget
       throw new Error("writeValueWithoutResponse error: request failed");
     }
     const view = new DataView(value);
-    this.setValue(view, false);
+    this.#setValue(view, false);
     return Promise.resolve();
   }
 
@@ -249,25 +246,25 @@ export class BluetoothRemoteGATTCharacteristic extends EventTarget
       );
     }
     simpleble_peripheral_notify(
-      this._peripheral,
+      this.#peripheral,
       this.service.uuid,
       this.uuid,
       (_service: string, _char: string, data: Uint8Array) => {
         console.log("NOTIFY");
         const arrayBuffer = data.buffer;
         const view = new DataView(arrayBuffer);
-        this.setValue(view, true);
+        this.#setValue(view, true);
       },
     );
     simpleble_peripheral_indicate(
-      this._peripheral,
+      this.#peripheral,
       this.service.uuid,
       this.uuid,
       (_service: string, _char: string, data: Uint8Array) => {
         console.log("INDICATE");
         const arrayBuffer = data.buffer;
         const view = new DataView(arrayBuffer);
-        this.setValue(view, true);
+        this.#setValue(view, true);
       },
     );
     return Promise.resolve(this);
@@ -281,8 +278,8 @@ export class BluetoothRemoteGATTCharacteristic extends EventTarget
       );
     }
     simpleble_peripheral_unsubscribe(
-      this._peripheral,
-      this._service.uuid,
+      this.#peripheral,
+      this.#service.uuid,
       this.uuid,
     );
     return Promise.resolve();
@@ -296,9 +293,9 @@ export class BluetoothRemoteGATTCharacteristic extends EventTarget
  */
 export class BluetoothRemoteGATTService extends EventTarget
   implements IBluetoothRemoteGATTService {
-  private _peripheral: Peripheral;
-  private _service: Service;
-  private _device: IBluetoothDevice;
+  #peripheral: Peripheral;
+  #service: Service;
+  #device: IBluetoothDevice;
 
   /** The UUID of this service. */
   readonly uuid: string;
@@ -310,18 +307,18 @@ export class BluetoothRemoteGATTService extends EventTarget
     service: Service,
   ) {
     super();
-    this._peripheral = peripheral;
-    this._service = service;
-    this._device = device;
+    this.#peripheral = peripheral;
+    this.#service = service;
+    this.#device = device;
     this.uuid = service.uuid;
 
     this.dispatchEvent(new Event("serviceadded"));
     this.device.dispatchEvent(new Event("serviceadded"));
   }
 
-  /** The [[BluetoothDevice]] this service belongs to. */
+  /** The {@link BluetoothDevice} this service belongs to. */
   get device(): IBluetoothDevice {
-    return this._device;
+    return this.#device;
   }
 
   /** Indicates if this is a primary or secondard service. Always true for now. */
@@ -359,14 +356,14 @@ export class BluetoothRemoteGATTService extends EventTarget
       );
     }
     const chars: IBluetoothRemoteGATTCharacteristic[] = [];
-    for (const char of this._service.characteristics) {
+    for (const char of this.#service.characteristics) {
       if (uuid) {
         if (char !== uuid) {
           continue;
         }
       }
       const characteristic = new BluetoothRemoteGATTCharacteristic(
-        this._peripheral,
+        this.#peripheral,
         this,
         char,
       );
@@ -383,56 +380,55 @@ export class BluetoothRemoteGATTService extends EventTarget
  */
 export class BluetoothRemoteGATTServer extends EventTarget
   implements IBluetoothRemoteGATTServer {
-  private _peripheral: Peripheral;
-  private _device: IBluetoothDevice;
-  private _connected: boolean;
+  #peripheral: Peripheral;
+  #device: IBluetoothDevice;
+  #connected: boolean;
 
   /** @hidden */
   constructor(device: IBluetoothDevice, peripheral: Peripheral) {
     super();
-    this._device = device;
-    this._peripheral = peripheral;
-    this._connected = false;
+    this.#device = device;
+    this.#peripheral = peripheral;
+    this.#connected = false;
   }
 
   /** Returns true while this device is connected. */
   get connected(): boolean {
-    return this._connected;
+    return this.#connected;
   }
 
-  /** The [[BluetoothDevice]] running this server. */
+  /** The {@link BluetoothDevice} running this server. */
   get device(): IBluetoothDevice {
-    return this._device;
+    return this.#device;
   }
 
-  /** @hidden */
-  _setConnected(status: boolean): void {
-    this._connected = status;
+  #setConnected(status: boolean): void {
+    this.#connected = status;
   }
 
   /** Begins connecting to this device. */
   connect(): Promise<IBluetoothRemoteGATTServer> {
-    const ret = simpleble_peripheral_connect(this._peripheral);
+    const ret = simpleble_peripheral_connect(this.#peripheral);
     if (!ret) {
       throw new Deno.errors.ConnectionRefused(
         "connect failed: device refused to connect",
       );
     }
-    this._setConnected(true);
-    simpleble_peripheral_set_callback_on_disconnected(this._peripheral, () => {
+    this.#setConnected(true);
+    simpleble_peripheral_set_callback_on_disconnected(this.#peripheral, () => {
       console.log("DISCONNECTED");
-      this._setConnected(false);
+      this.#setConnected(false);
     });
     return Promise.resolve(this);
   }
 
   /** Disconnect from this device. */
   disconnect(): void {
-    const ret = simpleble_peripheral_disconnect(this._peripheral);
+    const ret = simpleble_peripheral_disconnect(this.#peripheral);
     if (!ret) {
       throw new Error("disconnect failed: unknown error");
     }
-    this._setConnected(false);
+    this.#setConnected(false);
   }
 
   /** Returns the service for a UUID. */
@@ -449,18 +445,18 @@ export class BluetoothRemoteGATTServer extends EventTarget
 
   /** Returns a list of services for this device. */
   getPrimaryServices(uuid?: string): Promise<IBluetoothRemoteGATTService[]> {
-    const count = simpleble_peripheral_services_count(this._peripheral);
+    const count = simpleble_peripheral_services_count(this.#peripheral);
     const services: IBluetoothRemoteGATTService[] = [];
     for (let i = 0; i < count; i++) {
-      const handle = simpleble_peripheral_services_get(this._peripheral, i);
+      const handle = simpleble_peripheral_services_get(this.#peripheral, i);
       if (uuid) {
         if (handle.uuid !== uuid) {
           continue;
         }
       }
       const service = new BluetoothRemoteGATTService(
-        this._peripheral,
-        this._device,
+        this.#peripheral,
+        this.#device,
         handle,
       );
       services.push(service);
