@@ -23,16 +23,16 @@ jobs:
           deno-version: 'v1.x'
 
       - name: Configure CMake
-        run: cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SIMPLEBLE_C_SHARED=ON -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE/SimpleBLE/simpleble
+        run: cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SIMPLEBLE_C_SHARED=ON -DNO_SONAME=ON -B build -S SimpleBLE/simpleble
 
       - name: Build for Linux x64
-        run: cmake --build $GITHUB_WORKSPACE/build --config Release --parallel 4 --target simpleble-c
+        run: cmake --build build --config Release --parallel 4 --target simpleble-c
 
       - name: Find
         run: deno run -A find.ts
 
       - name: File
-        run: file build/lib/libsimpleble-c.so
+        run: file ./build/lib/libsimpleble-c.so
 
       - name: Upload
         uses: softprops/action-gh-release@v1
@@ -61,7 +61,7 @@ jobs:
           deno-version: 'v1.x'
 
       - name: Configure CMake
-        run: cmake -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DBUILD_SIMPLEBLE_C_SHARED=ON -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_BUILD_TYPE=Release -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE/SimpleBLE/simpleble
+        run: cmake -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DBUILD_SIMPLEBLE_C_SHARED=ON -DNO_SONAME=ON -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_BUILD_TYPE=Release -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE/SimpleBLE/simpleble
 
       - name: Build for macOS arm64/x86_64
         run: cmake --build $GITHUB_WORKSPACE/build --config Release --parallel 4 --target simpleble-c
@@ -70,7 +70,7 @@ jobs:
         run: deno run -A find.ts
 
       - name: File
-        run: file build/lib/libsimpleble-c.dylib
+        run: file ./build/lib/libsimpleble-c.dylib
 
       - name: Upload
         uses: softprops/action-gh-release@v1
@@ -78,7 +78,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           fail_on_unmatched_files: true
-          files: ./**/*.dylib
+          files: ./build/lib/libsimpleble-c.dylib
 
   build-windows:
     runs-on: windows-2019
@@ -97,7 +97,7 @@ jobs:
           deno-version: 'v1.x'
 
       - name: Configure CMake
-        run: cmake -G "Visual Studio 16 2019" -A x64 -DBUILD_SIMPLEBLE_C_SHARED=ON -DCMAKE_SYSTEM_VERSION=10.0.22000.0 -B build -S SimpleBLE/simpleble
+        run: cmake -G "Visual Studio 16 2019" -A x64 -DBUILD_SIMPLEBLE_C_SHARED=ON -DNO_SONAME=ON -DCMAKE_SYSTEM_VERSION=10.0.22000.0 -B build -S SimpleBLE/simpleble
 
       - name: Build for Windows x64
         run: cmake --build build --config Release --parallel 4 --target simpleble-c
