@@ -33,7 +33,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: build/lib/libsimpleble-c.so
+          files: ./build/lib/libsimpleble-c.so
 
   build-macos:
     runs-on: macos-latest
@@ -64,7 +64,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: build/lib/libsimpleble-c.dylib
+          files: lib/libsimpleble-c.dylib
 
   build-windows:
     runs-on: windows-2019
