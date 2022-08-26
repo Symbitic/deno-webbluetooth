@@ -28,19 +28,13 @@ jobs:
       - name: Build for Linux x64
         run: cmake --build build --config Release --parallel 4 --target simpleble-c
 
-      - name: Find
-        run: deno run -A find.ts
-
-      - name: File
-        run: file ./build/lib/libsimpleble-c.so
-
       - name: Upload
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           fail_on_unmatched_files: true
-          files: ./**/*.so
+          files: ./build/lib/libsimpleble-c.so
 
   build-macos:
     runs-on: macos-latest
@@ -61,16 +55,10 @@ jobs:
           deno-version: 'v1.x'
 
       - name: Configure CMake
-        run: cmake -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DBUILD_SIMPLEBLE_C_SHARED=ON -DNO_SONAME=ON -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_BUILD_TYPE=Release -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE/SimpleBLE/simpleble
+        run: cmake -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DBUILD_SIMPLEBLE_C_SHARED=ON -DNO_SONAME=ON -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_BUILD_TYPE=Release -B build -S SimpleBLE/simpleble
 
       - name: Build for macOS arm64/x86_64
-        run: cmake --build $GITHUB_WORKSPACE/build --config Release --parallel 4 --target simpleble-c
-
-      - name: Find
-        run: deno run -A find.ts
-
-      - name: File
-        run: file ./build/lib/libsimpleble-c.dylib
+        run: cmake --build build --config Release --parallel 4 --target simpleble-c
 
       - name: Upload
         uses: softprops/action-gh-release@v1
@@ -102,13 +90,10 @@ jobs:
       - name: Build for Windows x64
         run: cmake --build build --config Release --parallel 4 --target simpleble-c
 
-      - name: Find
-        run: deno run -A find.ts
-
       - name: Upload
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           fail_on_unmatched_files: true
-          files: ./**/*.dll
+          files: ./build/bin/Release/simpleble-c.dll
