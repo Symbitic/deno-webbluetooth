@@ -47,6 +47,9 @@ jobs:
       - name: Find
         run: deno run -A find.ts
 
+      - name: File
+        run: file build/lib/libsimpleble-c.so
+
   build-macos:
     runs-on: macos-latest
     steps:
@@ -73,6 +76,9 @@ jobs:
 
       - name: Find
         run: deno run -A find.ts
+
+      - name: File
+        run: build/lib/libsimpleble-c.dylib
 
   build-windows:
     runs-on: windows-2019

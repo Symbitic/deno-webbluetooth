@@ -31,12 +31,16 @@ jobs:
       - name: Find
         run: deno run -A find.ts
 
+      - name: File
+        run: build/lib/libsimpleble-c.so
+
       - name: Upload
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: $GITHUB_WORKSPACE/build/**/*.so
+          fail_on_unmatched_files: true
+          files: ./**/*.so
 
   build-macos:
     runs-on: macos-latest
@@ -65,12 +69,16 @@ jobs:
       - name: Find
         run: deno run -A find.ts
 
+      - name: File
+        run: build/lib/libsimpleble-c.dylib
+
       - name: Upload
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: $GITHUB_WORKSPACE/build/**/*.dylib
+          fail_on_unmatched_files: true
+          files: ./**/*.dylib
 
   build-windows:
     runs-on: windows-2019
@@ -102,4 +110,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: $GITHUB_WORKSPACE/build/**/*.dll
+          fail_on_unmatched_files: true
+          files: ./**/*.dll

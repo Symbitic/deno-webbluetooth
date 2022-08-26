@@ -21,17 +21,17 @@ export const parseInputFiles = (files: string): string[] => {
 };
 
 if (Deno.build.os === "darwin") {
-  const a = parseInputFiles("**/*.dylib");
+  const a = parseInputFiles("./**/*.dylib");
   console.log(a);
   const b = paths(a);
   console.log(b);
 } else if (Deno.build.os === "windows") {
-  const a = parseInputFiles("**/*.dylib");
+  const a = parseInputFiles("./**/*.dylib");
   console.log(a);
   const b = paths(a);
   console.log(b);
 } else {
-  const a = parseInputFiles("**/*.so");
+  const a = parseInputFiles("./**/*.so");
   console.log(a);
   const b = paths(a);
   console.log(b);
