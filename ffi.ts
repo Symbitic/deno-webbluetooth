@@ -1,51 +1,61 @@
-import { Plug } from "../deps.ts";
+import { Plug } from "./deps.ts";
 import { symbols } from "./symbols.ts";
-import { VERSION } from "../version.ts";
-
-const REMOTE_URL =
-  `https://github.com/Symbitic/deno-webbluetooth/releases/download/v${VERSION}`;
-const LOCAL_URL = Deno.build.os === "windows"
-  ? "build/bin/Release"
-  : "build/bin";
-
-const { protocol } = new URL(import.meta.url);
-
-const libDir = protocol === "file:" ? LOCAL_URL : REMOTE_URL;
-//const envPath = Deno.env.get("DENO_SIMPLEBLE_PATH");
-
-const options: Plug.Options = {
-  name: "simpleble",
-  policy: protocol === "file:" ? Plug.CachePolicy.NONE : Plug.CachePolicy.STORE,
-  urls: {
-    darwin: `${libDir}/libsimpleble-c.dylib`,
-    windows: `${libDir}/simpleble-c.dll`,
-    linux: `${libDir}/libsimpleble-c.so`,
-  },
-};
+import { VERSION } from "./version.ts";
 
 const UUID_STRUCT_SIZE = 37;
-const SERVICE_STRUCT_SIZE = 640;
+const SERVICE_STRUCT_SIZE = 10288;
 const MANUFACTURER_SIZE = 40;
+const CHARACTERISTIC_STRUCT_SIZE = 640;
+const DESCRIPTOR_STRUCT_SIZE = 37;
+const SERVICE_CHAR_COUNT_OFFSET = 40;
+const SERVICE_CHARS_OFFSET = 48;
+const CHAR_DESC_COUNT_OFFSET = 40; // simpleble_characteristic_t.descriptor_count
+const CHAR_DESCRIPTORS_OFFSET = 48; // simpleble_characteristic_t.descriptors
 
 /** SimpleBLE Adapter. */
 export type Adapter = bigint;
 /** SimpleBLE Peripheral. */
 export type Peripheral = bigint;
-/** SimpleBLE Characteristic. */
-export type Characteristic = bigint;
 /** SimpleBLE UserData. */
 export type UserData = bigint | null;
+
+/** SimpleBLE Characteristic. */
+export interface Characteristic {
+  uuid: string;
+  descriptors: string[];
+}
 
 /** A Bluetooth service. */
 export interface Service {
   uuid: string;
-  characteristics: string[];
+  characteristics: Characteristic[];
 }
 
 /** Bluetooth manufacturer data. */
 export interface ManufacturerData {
   id: number;
   data: Uint8Array;
+}
+
+let lib: Deno.DynamicLibrary<typeof symbols>;
+
+const PRODUCTION = !import.meta.url.includes("file://");
+
+// Load the shared library locally or remotely.
+if (PRODUCTION) {
+  lib = await Plug.prepare({
+    name: "simpleble-c",
+    url:
+      `https://github.com/Symbitic/deno-webbluetooth/releases/download/v${VERSION}`,
+    policy: Plug.CachePolicy.STORE,
+  }, symbols);
+} else {
+  const filename = {
+    windows: "./build/lib/Release/simpleble-c.dll",
+    darwin: "./build/lib/libsimpleble-c.dylib",
+    linux: "./build/lib/libsimpleble-c.so",
+  }[Deno.build.os];
+  lib = Deno.dlopen(filename, symbols);
 }
 
 function encodeString(str: string, bufSize = 0): Uint8Array {
@@ -55,32 +65,6 @@ function encodeString(str: string, bufSize = 0): Uint8Array {
   const ret = new Uint8Array(dst);
   ret.set(new Uint8Array(src));
   return ret;
-}
-
-let lib: Deno.DynamicLibrary<typeof symbols>;
-
-const MINIMUM_DENO_VERSION = "1.23.0";
-const [major, minor, _patch] = Deno.version.deno.split(".");
-const [minMajor, minMinor, _minPatch] = MINIMUM_DENO_VERSION.split(".");
-
-if (major < minMajor || (major === minMajor && minor < minMinor)) {
-  throw new Error(
-    `Please upgrade to Deno version ${MINIMUM_DENO_VERSION} or later`,
-  );
-}
-
-try {
-  lib = await Plug.prepare(options, symbols);
-} catch (e) {
-  if (e instanceof Deno.errors.PermissionDenied) {
-    throw e;
-  }
-
-  const error = new Error(
-    "SimpleBLE not found. Either build it or set the `DENO_SIMPLEBLE_PATH` environment variable.",
-  );
-  error.cause = e;
-  throw error;
 }
 
 /** Returns the number of adapters found. */
@@ -335,12 +319,10 @@ export function simpleble_peripheral_services_get(
   handle: Peripheral,
   index: number,
 ): Service {
-  const CHARCOUNT_OFFSET = 40;
-  const CHARS_OFFSET = 48;
-
   const decoder = new TextDecoder();
   const u8 = new Uint8Array(SERVICE_STRUCT_SIZE);
   const ptr = Deno.UnsafePointer.of(u8);
+
   const err = lib.symbols.simpleble_peripheral_services_get(handle, index, ptr);
   if (err !== 0) {
     return {
@@ -348,19 +330,38 @@ export function simpleble_peripheral_services_get(
       characteristics: [],
     };
   }
+
   const uuidArray = new Uint8Array(UUID_STRUCT_SIZE - 1);
   const view = new Deno.UnsafePointerView(ptr);
-  const characteristics: string[] = [];
+  const characteristics: Characteristic[] = [];
 
   view.copyInto(uuidArray, 0);
-  const charsCount = view.getBigUint64(CHARCOUNT_OFFSET);
-  const INCREMENT = CHARCOUNT_OFFSET; // Might be CHARCOUNT_OFFSET or UUID_STRUCT_SIZE
+
+  const charsCount = view.getBigUint64(SERVICE_CHAR_COUNT_OFFSET);
   for (let i = 0; i < charsCount; i++) {
     const charArray = new Uint8Array(UUID_STRUCT_SIZE - 1);
-    const offset = CHARS_OFFSET + (i * INCREMENT);
-    view.copyInto(charArray, offset);
-    const char = decoder.decode(charArray);
-    characteristics.push(char);
+    const charsOffset = SERVICE_CHARS_OFFSET + (i * CHARACTERISTIC_STRUCT_SIZE);
+    view.copyInto(charArray, charsOffset);
+    const charUuid = decoder.decode(charArray);
+
+    const descCountOffset = charsOffset + CHAR_DESC_COUNT_OFFSET;
+    const descriptorsCount = view.getBigUint64(descCountOffset);
+
+    const descriptorUuids: string[] = [];
+
+    for (let j = 0; j < descriptorsCount; j++) {
+      const descArray = new Uint8Array(DESCRIPTOR_STRUCT_SIZE - 1);
+      const descOffset = charsOffset + CHAR_DESCRIPTORS_OFFSET +
+        (DESCRIPTOR_STRUCT_SIZE * i);
+      view.copyInto(descArray, descOffset);
+      const descUuid = decoder.decode(descArray);
+      descriptorUuids.push(descUuid);
+    }
+
+    characteristics.push({
+      uuid: charUuid,
+      descriptors: descriptorUuids,
+    });
   }
   const uuid = decoder.decode(uuidArray);
 
@@ -634,4 +635,62 @@ export function simpleble_peripheral_set_callback_on_disconnected(
 /** Deallocate memory for a SimpleBLE-C handle. */
 export function simpleble_free(handle: bigint): void {
   lib.symbols.simpleble_free(handle);
+}
+
+/** Read data from a descriptor. */
+export function simpleble_peripheral_read_descriptor(
+  handle: Peripheral,
+  service: string,
+  characteristic: string,
+  descriptor: string,
+): Uint8Array | undefined {
+  const serviceBuf = encodeString(service, UUID_STRUCT_SIZE);
+  const charBuf = encodeString(characteristic, UUID_STRUCT_SIZE);
+  const descBuf = encodeString(descriptor, UUID_STRUCT_SIZE);
+  const dataPtr = new BigUint64Array(1);
+  const lengthPtr = new BigUint64Array(1);
+
+  const err = lib.symbols.simpleble_peripheral_read_descriptor(
+    handle,
+    serviceBuf,
+    charBuf,
+    descBuf,
+    dataPtr,
+    lengthPtr,
+  );
+  if (err !== 0) return undefined;
+
+  const dataView = new Deno.UnsafePointerView(dataPtr[0]);
+  const lengthView = new Deno.UnsafePointerView(lengthPtr[0]);
+
+  const dataLength = Number(lengthView.getBigUint64());
+  const data = new Uint8Array(dataLength);
+  dataView.copyInto(data);
+
+  return data;
+}
+
+/** Write data to a descriptor. */
+export function simpleble_peripheral_write_descriptor(
+  handle: Peripheral,
+  service: string,
+  characteristic: string,
+  descriptor: string,
+  data: Uint8Array,
+): boolean {
+  const serviceBuf = encodeString(service, UUID_STRUCT_SIZE);
+  const charBuf = encodeString(characteristic, UUID_STRUCT_SIZE);
+  const descBuf = encodeString(descriptor, UUID_STRUCT_SIZE);
+
+  const err = lib.symbols.simpleble_peripheral_write_descriptor(
+    handle,
+    serviceBuf,
+    charBuf,
+    descBuf,
+    data,
+    data.length,
+  );
+  if (err !== 0) return false;
+
+  return true;
 }

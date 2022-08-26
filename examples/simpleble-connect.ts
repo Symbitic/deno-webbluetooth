@@ -17,10 +17,10 @@ import {
   simpleble_peripheral_services_get,
   simpleble_peripheral_set_callback_on_connected,
   simpleble_peripheral_set_callback_on_disconnected,
-} from "../src/ffi.ts";
+} from "../ffi.ts";
 
-const DELAY = 2000;
-const DELAY2 = 5000;
+const SCAN_TIMEOUT = 2000;
+const DISCONNECT_TIMEOUT = 5000;
 
 const adaptersCount = simpleble_adapter_get_count();
 if (adaptersCount === 0n) {
@@ -31,9 +31,9 @@ if (adaptersCount === 0n) {
 console.log(`Found ${adaptersCount} adapters`);
 const adapter = simpleble_adapter_get_handle(0);
 
-console.log(`Starting scan`);
+console.log(`Starting scan for ${SCAN_TIMEOUT / 1000} seconds`);
 simpleble_adapter_scan_start(adapter);
-await delay(DELAY);
+await delay(SCAN_TIMEOUT);
 simpleble_adapter_scan_stop(adapter);
 console.log(`Finished scan`);
 
@@ -80,6 +80,7 @@ for (let i = 0; i < servicesCount; i++) {
   const service = simpleble_peripheral_services_get(device, i);
   console.log(`[${i}] - ${service.uuid}`);
 }
+
 const serviceString = prompt("Please select a service:");
 const serviceNum = parseInt(serviceString || "", 10);
 if (isNaN(serviceNum) || serviceNum < 0 || serviceNum >= servicesCount) {
@@ -93,14 +94,19 @@ const service = simpleble_peripheral_services_get(device, serviceNum);
 const charsCount = service.characteristics.length;
 console.log(`Found ${charsCount} characteristics`);
 for (let i = 0; i < charsCount; i++) {
-  console.log(`[${i}] ${service.characteristics[i]}`);
+  console.log(`[${i}] ${service.characteristics[i].uuid}`);
+  for (let j = 0; j < service.characteristics[i].descriptors.length; j++) {
+    console.log(
+      `  Descriptor ${j} = ${service.characteristics[i].descriptors[j]}`,
+    );
+  }
 }
 
 if (charsCount > 0) {
   simpleble_peripheral_indicate(
     device,
     service.uuid,
-    service.characteristics[0],
+    service.characteristics[0].uuid,
     (service: string, char: string) => {
       console.log(`INDICATE: ${service} - ${char}`);
     },
@@ -108,12 +114,13 @@ if (charsCount > 0) {
   simpleble_peripheral_notify(
     device,
     service.uuid,
-    service.characteristics[0],
+    service.characteristics[0].uuid,
     (service: string, char: string) => {
       console.log(`NOTIFY: ${service} - ${char}`);
     },
   );
-  await delay(DELAY2);
+  console.log(`Disconnecting in ${DISCONNECT_TIMEOUT / 1000} seconds`);
+  await delay(DISCONNECT_TIMEOUT);
 }
 
 simpleble_peripheral_disconnect(device);

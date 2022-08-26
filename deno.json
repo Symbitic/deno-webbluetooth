@@ -28,9 +28,9 @@
   },
   "tasks": {
     "build": "cmake --build build --config Release --parallel 4 --target simpleble-c",
-    "configure-linux": "cmake -DCMAKE_BUILD_TYPE=Release -B build -S SimpleBLE",
-    "configure-macos": "cmake -DCMAKE_OSX_ARCHITECTURES=\"arm64;x86_64\" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_BUILD_TYPE=Release -B build -S SimpleBLE",
-    "configure-windows": "cmake -G \"Visual Studio 16 2019\" -A x64 -DCMAKE_SYSTEM_VERSION=10.0.22000.0 -B build -S SimpleBLE",
+    "configure-linux": "cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SIMPLEBLE_C_SHARED=ON -B build -S SimpleBLE/simpleble",
+    "configure-macos": "cmake -DCMAKE_OSX_ARCHITECTURES=\"arm64;x86_64\" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_BUILD_TYPE=Release -DBUILD_SIMPLEBLE_C_SHARED=ON -B build -S SimpleBLE/simpleble",
+    "configure-windows": "cmake -G \"Visual Studio 16 2019\" -A x64 -DCMAKE_SYSTEM_VERSION=10.0.22000.0 -DBUILD_SIMPLEBLE_C_SHARED=ON -B build -S SimpleBLE/simpleble",
     "fmt": "deno fmt --check -c deno.json",
     "fmt:fix": "deno fmt -c deno.json",
     "lint": "deno lint -c deno.json"

@@ -1,10 +1,15 @@
 import { Bluetooth } from "../mod.ts";
 import type { RequestDeviceInfo } from "../mod.ts";
 
-// Scan for a LEGO Hub.
+// CHANGE THIS!
 const DEVICE_NAME = "HUB";
-const SERVICE_UUID = "00001623-1212-efde-1623-785feabcd123";
-const CHARACTERISTIC_UUID = "00001624-1212-efde-1623-785feabcd123";
+
+function deviceFilter(deviceInfo: RequestDeviceInfo): boolean {
+  if (deviceInfo.name.includes(DEVICE_NAME)) {
+    return true;
+  }
+  return false;
+}
 
 const bluetooth = new Bluetooth();
 
@@ -14,26 +19,31 @@ if (!isAvailable) {
   Deno.exit(1);
 }
 
-function deviceFilter(deviceInfo: RequestDeviceInfo): boolean {
-  if (deviceInfo.id.includes(DEVICE_NAME)) {
-    console.log("Found");
-    return true;
-  }
-  return false;
-}
-
 try {
-  const device = await bluetooth.requestDevice({ deviceFound: deviceFilter });
+  console.log(`Scanning for "${DEVICE_NAME}"`);
+  const device = await bluetooth.requestDevice({
+    filter: deviceFilter,
+  });
+
+  console.log(`Found!`);
   const server = await device.gatt.connect();
 
-  const service = await server.getPrimaryService(SERVICE_UUID);
-  console.log(`Service UUID: ${service.uuid}`);
+  const services = await server.getPrimaryServices();
+  for (const service of services) {
+    console.log(`Service: ${service.uuid}`);
+    const characteristics = await service.getCharacteristics();
+    for (const characteristic of characteristics) {
+      console.log(`  Characteristic: ${characteristic.uuid}`);
+      const descriptors = await characteristic.getDescriptors();
+      for (const descriptor of descriptors) {
+        console.log(`    Descriptor: ${descriptor.uuid}`);
+      }
+    }
+  }
 
-  const char = await service.getCharacteristic(CHARACTERISTIC_UUID);
-  console.log(`Characteristic UUID: ${char.uuid}`);
-
+  console.log("Disconnecting");
   server.disconnect();
 } catch (err) {
-  console.error(err);
+  console.error(err.message);
   Deno.exit(1);
 }

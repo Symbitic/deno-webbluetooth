@@ -198,6 +198,28 @@ export const symbols = {
     ],
     result: "u32",
   },
+  simpleble_peripheral_read_descriptor: {
+    parameters: [
+      "pointer", // simpleble_peripheral_t handle
+      "pointer", // simpleble_uuid_t service
+      "pointer", // simpleble_uuid_t characteristic
+      "pointer", // simpleble_uuid_t descriptor
+      "pointer", // uint8_t** data
+      "pointer", // size_t* data_length
+    ],
+    result: "u32",
+  },
+  simpleble_peripheral_write_descriptor: {
+    parameters: [
+      "pointer", // simpleble_peripheral_t handle
+      "pointer", // simpleble_uuid_t service
+      "pointer", // simpleble_uuid_t characteristic
+      "pointer", // simpleble_uuid_t descriptor
+      "pointer", // uint8_t* data
+      "usize", // size_t data_length
+    ],
+    result: "u32",
+  },
   simpleble_free: {
     parameters: ["pointer"],
     result: "void",

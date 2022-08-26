@@ -23,7 +23,7 @@ jobs:
           deno-version: 'v1.x'
 
       - name: Configure CMake
-        run: cmake -DCMAKE_BUILD_TYPE=Release -B build -S SimpleBLE
+        run: cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SIMPLEBLE_C_SHARED=ON -B build -S SimpleBLE/simpleble
 
       - name: Build for Linux x64
         run: cmake --build build --config Release --parallel 4 --target simpleble-c
@@ -33,7 +33,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: build/bin/libsimpleble-c.so
+          files: build/lib/libsimpleble-c.so
 
   build-macos:
     runs-on: macos-latest
@@ -54,7 +54,7 @@ jobs:
           deno-version: 'v1.x'
 
       - name: Configure CMake
-        run: cmake -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_BUILD_TYPE=Release -B build -S SimpleBLE
+        run: cmake -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DBUILD_SIMPLEBLE_C_SHARED=ON -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_BUILD_TYPE=Release -B build -S SimpleBLE/simpleble
 
       - name: Build for macOS arm64/x86_64
         run: cmake --build build --config Release --parallel 4 --target simpleble-c
@@ -64,7 +64,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: build/bin/libsimpleble-c.dylib
+          files: build/lib/libsimpleble-c.dylib
 
   build-windows:
     runs-on: windows-2019
@@ -83,7 +83,7 @@ jobs:
           deno-version: 'v1.x'
 
       - name: Configure CMake
-        run: cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_SYSTEM_VERSION=10.0.22000.0 -B build -S SimpleBLE
+        run: cmake -G "Visual Studio 16 2019" -A x64 -DBUILD_SIMPLEBLE_C_SHARED=ON -DCMAKE_SYSTEM_VERSION=10.0.22000.0 -B build -S SimpleBLE/simpleble
 
       - name: Build for Windows x64
         run: cmake --build build --config Release --parallel 4 --target simpleble-c
@@ -93,4 +93,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: build/bin/Release/simpleble-c.dll
+          files: build/lib/Release/simpleble-c.dll

@@ -9,7 +9,7 @@ import {
   simpleble_peripheral_address,
   simpleble_peripheral_identifier,
   simpleble_peripheral_release_handle,
-} from "../src/ffi.ts";
+} from "../ffi.ts";
 
 const DELAY = 2000;
 

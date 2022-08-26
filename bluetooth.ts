@@ -1,5 +1,5 @@
-import { delay } from "../deps.ts";
-import { BluetoothDevice } from "./device.ts";
+import { delay } from "./deps.ts";
+import { BluetoothDevice } from "./gatt.ts";
 import {
   simpleble_adapter_get_count,
   simpleble_adapter_get_handle,
@@ -12,28 +12,67 @@ import {
   simpleble_peripheral_manufacturer_data_count,
   simpleble_peripheral_manufacturer_data_get,
   simpleble_peripheral_release_handle,
-  simpleble_peripheral_rssi,
 } from "./ffi.ts";
 
 import type {
+  BluetoothLEScanFilter,
+  BluetoothManufacturerDataFilter,
   BluetoothManufacturerDataMap,
-  IBluetooth,
-  IBluetoothDevice,
   RequestDeviceInfo,
   RequestDeviceOptions,
 } from "./interfaces.ts";
 import type { Adapter } from "./ffi.ts";
 
-/**
- * Interface for creating {@link BluetoothDevice} objects.
- */
-export class Bluetooth extends EventTarget implements IBluetooth {
+const isView = (
+  source: ArrayBuffer | ArrayBufferView,
+): source is ArrayBufferView =>
+  (source as ArrayBufferView).buffer !== undefined;
+
+function _equal(a: ArrayBuffer, b: ArrayBuffer): boolean {
+  const first = new Uint8Array(a);
+  const second = new Uint8Array(b);
+  return first.length === second.length &&
+    first.every((value, index) => value === second[index]);
+}
+
+function checkManufacturerData(
+  map: BluetoothManufacturerDataMap,
+  filters: BluetoothManufacturerDataFilter[],
+): boolean {
+  for (const filter of filters) {
+    const { companyIdentifier, dataPrefix } = filter;
+    // Company ID not found; not a match.
+    if (!map.has(companyIdentifier)) {
+      continue;
+    }
+    // If no dataPrefix, then the match was successful.
+    if (!dataPrefix) {
+      return true;
+    }
+    const arrayBuffer = isView(dataPrefix) ? dataPrefix.buffer : dataPrefix;
+    const view = map.get(companyIdentifier)!;
+    const bytes = new Uint8Array(arrayBuffer);
+    const values: boolean[] = [];
+    for (const [i, b] of bytes.entries()) {
+      const a = view.getUint8(i);
+      values[i] = a === b;
+    }
+    const valid = values.every((val) => val);
+    if (valid) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/** Interface for creating {@link BluetoothDevice} objects. */
+export class Bluetooth extends EventTarget {
   #adapter: Adapter;
-  #devices: IBluetoothDevice[];
-  #onavailabilitychanged?: (ev: Event) => void;
+  #devices: BluetoothDevice[];
 
   /** Since Deno cannot navigate by Bluetooth URL, this will never be present. */
-  readonly referringDevice?: IBluetoothDevice = undefined;
+  readonly referringDevice?: BluetoothDevice = undefined;
 
   /** @hidden */
   constructor() {
@@ -52,19 +91,6 @@ export class Bluetooth extends EventTarget implements IBluetooth {
     this.dispatchEvent(new Event("availabilitychanged"));
   }
 
-  /** Event handler for the `availabilitychanged` event. */
-  // deno-lint-ignore explicit-module-boundary-types
-  set onavailabilitychanged(fn: (ev: Event) => void) {
-    if (this.#onavailabilitychanged) {
-      this.removeEventListener(
-        "availabilitychanged",
-        this.#onavailabilitychanged,
-      );
-    }
-    this.#onavailabilitychanged = fn;
-    this.addEventListener("availabilitychanged", this.#onavailabilitychanged);
-  }
-
   /** Determines if a working Bluetooth adapter is usable. */
   getAvailability(): Promise<boolean> {
     const count = simpleble_adapter_get_count();
@@ -72,16 +98,24 @@ export class Bluetooth extends EventTarget implements IBluetooth {
   }
 
   /** Returns a list of every device requested thus far. */
-  getDevices(): Promise<IBluetoothDevice[]> {
+  getDevices(): Promise<BluetoothDevice[]> {
     return Promise.resolve(this.#devices);
   }
 
   /** Scans for Bluetooth devices. */
   async *scan(
-    deviceFound: (device: RequestDeviceInfo) => boolean,
-  ): AsyncIterableIterator<IBluetoothDevice> {
-    const timeout = 200;
+    options: RequestDeviceOptions,
+  ): AsyncIterableIterator<BluetoothDevice> {
+    const timeout = options.timeout ?? 200;
     const ids: string[] = [];
+    const { filter, filters } = options as any;
+
+    if (!filters && !filter) {
+      throw new TypeError("filter or filters must be given");
+    }
+
+    const filterCb = this.#createFilter(options);
+
     while (true) {
       simpleble_adapter_scan_start(this.#adapter);
       await delay(timeout);
@@ -107,13 +141,13 @@ export class Bluetooth extends EventTarget implements IBluetooth {
             manufacturerData.set(data.id, new DataView(data.data.buffer));
           }
         }
-        const found = deviceFound({ id, address, manufacturerData });
+        const found = filterCb({
+          name: id,
+          address,
+          manufacturerData,
+        });
         if (found) {
-          const rssi = simpleble_peripheral_rssi(d);
-          const device = new BluetoothDevice(d, address, id, {
-            rssi,
-            manufacturerData,
-          });
+          const device = new BluetoothDevice(d, address, id, manufacturerData);
           ids.push(id);
           yield device;
         }
@@ -122,11 +156,55 @@ export class Bluetooth extends EventTarget implements IBluetooth {
     }
   }
 
+  #createFilter(options: any): (info: RequestDeviceInfo) => boolean {
+    if (!options.filters && !options.filter) {
+      throw new TypeError("filter or filters must be given");
+    } else if (options.filter) {
+      return options.filter;
+    }
+
+    const cb = (info: RequestDeviceInfo): boolean => {
+      return this.#filterDevice(options.filters, info);
+    };
+    return cb;
+  }
+
+  #filterDevice(
+    filters: BluetoothLEScanFilter[],
+    info: RequestDeviceInfo,
+  ): boolean {
+    for (const filter of filters) {
+      if (filter.name && filter.name !== info.name) {
+        continue;
+      }
+      if (filter.namePrefix && !info.name.startsWith(filter.namePrefix)) {
+        continue;
+      }
+      if (
+        filter.manufacturerData &&
+        !checkManufacturerData(info.manufacturerData, filter.manufacturerData)
+      ) {
+        continue;
+      }
+      if (filter.services) {
+        throw new Error("Filters is not supported yet");
+      }
+      return true;
+    }
+    return false;
+  }
+
   async #request(
-    options: RequestDeviceOptions,
+    options: any,
     singleDevice: boolean,
-  ): Promise<IBluetoothDevice[]> {
+  ): Promise<BluetoothDevice[]> {
     const timeout = options.timeout ?? 5000;
+
+    if (!options.filters && !options.filter) {
+      throw new TypeError("filter or filters must be given");
+    }
+
+    const filterCb = this.#createFilter(options);
 
     simpleble_adapter_scan_start(this.#adapter);
     await delay(timeout);
@@ -136,7 +214,7 @@ export class Bluetooth extends EventTarget implements IBluetooth {
       this.#adapter,
     );
 
-    const devices: IBluetoothDevice[] = [];
+    const devices: BluetoothDevice[] = [];
 
     for (let i = 0; i < resultsCount; i++) {
       const d = simpleble_adapter_scan_get_results_handle(this.#adapter, i);
@@ -150,13 +228,13 @@ export class Bluetooth extends EventTarget implements IBluetooth {
           manufacturerData.set(data.id, new DataView(data.data.buffer));
         }
       }
-      const found = options.deviceFound({ id, address, manufacturerData });
+      const found = filterCb({
+        name: id,
+        address,
+        manufacturerData,
+      });
       if (found) {
-        const rssi = simpleble_peripheral_rssi(d);
-        const device = new BluetoothDevice(d, address, id, {
-          rssi,
-          manufacturerData,
-        });
+        const device = new BluetoothDevice(d, address, id, manufacturerData);
         devices.push(device);
         if (singleDevice) {
           break;
@@ -178,7 +256,7 @@ export class Bluetooth extends EventTarget implements IBluetooth {
    */
   async requestDevice(
     options: RequestDeviceOptions,
-  ): Promise<IBluetoothDevice> {
+  ): Promise<BluetoothDevice> {
     const devices = await this.#request(options, true);
 
     if (!devices.length) {
@@ -197,7 +275,7 @@ export class Bluetooth extends EventTarget implements IBluetooth {
    */
   async requestDevices(
     options: RequestDeviceOptions,
-  ): Promise<IBluetoothDevice[]> {
+  ): Promise<BluetoothDevice[]> {
     const devices = await this.#request(options, true);
 
     if (!devices.length) {
