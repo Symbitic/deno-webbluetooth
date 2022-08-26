@@ -26,7 +26,7 @@ if (Deno.build.os === "darwin") {
   const b = paths(a);
   console.log(b);
 } else if (Deno.build.os === "windows") {
-  const a = parseInputFiles("./**/*.dylib");
+  const a = parseInputFiles("./**/*.dll");
   console.log(a);
   const b = paths(a);
   console.log(b);
