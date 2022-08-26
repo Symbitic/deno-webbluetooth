@@ -23,16 +23,10 @@ import type {
 } from "./interfaces.ts";
 import type { Adapter } from "./ffi.ts";
 
-const isView = (
+function isView(
   source: ArrayBuffer | ArrayBufferView,
-): source is ArrayBufferView =>
-  (source as ArrayBufferView).buffer !== undefined;
-
-function _equal(a: ArrayBuffer, b: ArrayBuffer): boolean {
-  const first = new Uint8Array(a);
-  const second = new Uint8Array(b);
-  return first.length === second.length &&
-    first.every((value, index) => value === second[index]);
+): source is ArrayBufferView {
+  return (source as ArrayBufferView).buffer !== undefined;
 }
 
 function checkManufacturerData(
@@ -102,7 +96,12 @@ export class Bluetooth extends EventTarget {
     return Promise.resolve(this.#devices);
   }
 
-  /** Scans for Bluetooth devices. */
+  /**
+   * Scan for Bluetooth devices indefinitely.
+   *
+   * This function is not a part of the WebBluetooth standard. It was made as
+   * a convenience function for long-running programs.
+   */
   async *scan(
     options: RequestDeviceOptions,
   ): AsyncIterableIterator<BluetoothDevice> {
@@ -147,7 +146,14 @@ export class Bluetooth extends EventTarget {
           manufacturerData,
         });
         if (found) {
-          const device = new BluetoothDevice(d, address, id, manufacturerData);
+          const device = new BluetoothDevice(
+            this.#adapter,
+            i,
+            d,
+            address,
+            id,
+            manufacturerData,
+          );
           ids.push(id);
           yield device;
         }
@@ -234,7 +240,14 @@ export class Bluetooth extends EventTarget {
         manufacturerData,
       });
       if (found) {
-        const device = new BluetoothDevice(d, address, id, manufacturerData);
+        const device = new BluetoothDevice(
+          this.#adapter,
+          i,
+          d,
+          address,
+          id,
+          manufacturerData,
+        );
         devices.push(device);
         if (singleDevice) {
           break;

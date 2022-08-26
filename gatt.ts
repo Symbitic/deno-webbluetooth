@@ -1,10 +1,12 @@
 import {
+  simpleble_adapter_scan_get_results_handle,
   simpleble_peripheral_connect,
   simpleble_peripheral_disconnect,
   simpleble_peripheral_indicate,
   simpleble_peripheral_notify,
   simpleble_peripheral_read,
   simpleble_peripheral_read_descriptor,
+  simpleble_peripheral_release_handle,
   simpleble_peripheral_services_count,
   simpleble_peripheral_services_get,
   simpleble_peripheral_set_callback_on_disconnected,
@@ -14,7 +16,7 @@ import {
   simpleble_peripheral_write_request,
 } from "./ffi.ts";
 
-import type { Characteristic, Peripheral, Service } from "./ffi.ts";
+import type { Adapter, Characteristic, Peripheral, Service } from "./ffi.ts";
 import type {
   BluetoothCharacteristicProperties,
   BluetoothManufacturerDataMap,
@@ -26,13 +28,16 @@ import type {
  * See also: {@link https://developer.mozilla.org/en-US/docs/Web/API/BluetoothRemoteGATTDescriptor BluetoothRemoteGATTDescriptor}
  */
 export class BluetoothRemoteGATTDescriptor extends EventTarget {
-  #peripheral: Peripheral;
+  readonly #peripheral: Peripheral;
+  readonly #char: BluetoothRemoteGATTCharacteristic;
+  readonly #service: BluetoothRemoteGATTService;
+  readonly #uuid: string;
   #value?: DataView;
-  #char: BluetoothRemoteGATTCharacteristic;
-  #service: BluetoothRemoteGATTService;
 
   /** The UUID of this descriptor. */
-  readonly uuid: string;
+  get uuid(): string {
+    return this.#uuid;
+  }
 
   /** The characteristic this descriptor belongs to. */
   get characteristic(): BluetoothRemoteGATTCharacteristic {
@@ -58,7 +63,7 @@ export class BluetoothRemoteGATTDescriptor extends EventTarget {
     this.#peripheral = peripheral;
     this.#char = char;
     this.#service = service;
-    this.uuid = uuid;
+    this.#uuid = uuid;
   }
 
   /** Resolves to a DataView containing a copy of the `value` property. */
@@ -67,7 +72,7 @@ export class BluetoothRemoteGATTDescriptor extends EventTarget {
       this.#peripheral,
       this.#service.uuid,
       this.#char.uuid,
-      this.uuid,
+      this.#uuid,
     );
     if (!data) {
       throw new Deno.errors.BadResource("Descriptor is no longer valid");
@@ -84,7 +89,7 @@ export class BluetoothRemoteGATTDescriptor extends EventTarget {
       this.#peripheral,
       this.#service.uuid,
       this.#char.uuid,
-      this.uuid,
+      this.#uuid,
       data,
     );
     if (!ret) {
@@ -103,13 +108,11 @@ export class BluetoothRemoteGATTDescriptor extends EventTarget {
  * See also: {@link https://developer.mozilla.org/en-US/docs/Web/API/BluetoothRemoteGATTCharacteristic BluetoothRemoteGATTCharacteristic}
  */
 export class BluetoothRemoteGATTCharacteristic extends EventTarget {
-  #peripheral: Peripheral;
-  #characteristic: Characteristic;
-  #service: BluetoothRemoteGATTService;
+  readonly #peripheral: Peripheral;
+  readonly #characteristic: Characteristic;
+  readonly #service: BluetoothRemoteGATTService;
+  readonly #uuid: string;
   #value?: DataView;
-
-  /** The UUID of this characteristic */
-  readonly uuid: string;
 
   /** @hidden */
   constructor(
@@ -122,7 +125,7 @@ export class BluetoothRemoteGATTCharacteristic extends EventTarget {
     this.#service = service;
     this.#characteristic = characteristic;
     this.#value = undefined;
-    this.uuid = characteristic.uuid;
+    this.#uuid = characteristic.uuid;
   }
 
   /** Register for the `characteristicvaluechanged` event. */
@@ -151,6 +154,11 @@ export class BluetoothRemoteGATTCharacteristic extends EventTarget {
       write: true,
       writeWithoutResponse: true,
     };
+  }
+
+  /** The UUID of this characteristic. */
+  get uuid(): string {
+    return this.#uuid;
   }
 
   /**
@@ -270,6 +278,7 @@ export class BluetoothRemoteGATTCharacteristic extends EventTarget {
       this.service.uuid,
       this.uuid,
       (_service: string, _char: string, data: Uint8Array) => {
+        console.log("NOTIFY");
         const arrayBuffer = data.buffer;
         const view = new DataView(arrayBuffer);
         this.#setValue(view, true);
@@ -280,6 +289,7 @@ export class BluetoothRemoteGATTCharacteristic extends EventTarget {
       this.service.uuid,
       this.uuid,
       (_service: string, _char: string, data: Uint8Array) => {
+        console.log("INDICATE");
         const arrayBuffer = data.buffer;
         const view = new DataView(arrayBuffer);
         this.#setValue(view, true);
@@ -308,12 +318,10 @@ export class BluetoothRemoteGATTCharacteristic extends EventTarget {
  * See also: {@link https://developer.mozilla.org/en-US/docs/Web/API/BluetoothRemoteGATTService BluetoothRemoteGATTService}
  */
 export class BluetoothRemoteGATTService extends EventTarget {
-  #peripheral: Peripheral;
-  #service: Service;
-  #device: BluetoothDevice;
-
-  /** The UUID of this service. */
-  readonly uuid: string;
+  readonly #peripheral: Peripheral;
+  readonly #service: Service;
+  readonly #device: BluetoothDevice;
+  readonly #uuid: string;
 
   /** @hidden */
   constructor(
@@ -325,7 +333,7 @@ export class BluetoothRemoteGATTService extends EventTarget {
     this.#peripheral = peripheral;
     this.#service = service;
     this.#device = device;
-    this.uuid = service.uuid;
+    this.#uuid = service.uuid;
 
     this.dispatchEvent(new Event("serviceadded"));
     this.device.dispatchEvent(new Event("serviceadded"));
@@ -338,6 +346,11 @@ export class BluetoothRemoteGATTService extends EventTarget {
     useCapture?: boolean,
   ): void {
     super.addEventListener(type, listener, useCapture);
+  }
+
+  /** The UUID of this service. */
+  get uuid(): string {
+    return this.#uuid;
   }
 
   /** The {@link BluetoothDevice} this service belongs to. */
@@ -397,16 +410,27 @@ export class BluetoothRemoteGATTService extends EventTarget {
  * See also: {@link https://developer.mozilla.org/en-US/docs/Web/API/BluetoothRemoteGATTServer BluetoothRemoteGATTServer}
  */
 export class BluetoothRemoteGATTServer extends EventTarget {
+  readonly #adapter: Adapter;
+  readonly #index: number;
+  readonly #device: BluetoothDevice;
   #peripheral: Peripheral;
-  #device: BluetoothDevice;
   #connected: boolean;
+  #initialized: boolean;
 
   /** @hidden */
-  constructor(device: BluetoothDevice, peripheral: Peripheral) {
+  constructor(
+    adapter: Adapter,
+    index: number,
+    device: BluetoothDevice,
+    peripheral: Peripheral,
+  ) {
     super();
+    this.#adapter = adapter;
+    this.#index = index;
     this.#device = device;
     this.#peripheral = peripheral;
     this.#connected = false;
+    this.#initialized = true;
   }
 
   /** Returns true while this device is connected. */
@@ -425,6 +449,13 @@ export class BluetoothRemoteGATTServer extends EventTarget {
 
   /** Begins connecting to this device. */
   connect(): Promise<BluetoothRemoteGATTServer> {
+    if (!this.#initialized) {
+      this.#peripheral = simpleble_adapter_scan_get_results_handle(
+        this.#adapter,
+        this.#index,
+      );
+      this.#initialized = true;
+    }
     const ret = simpleble_peripheral_connect(this.#peripheral);
     if (!ret) {
       throw new Deno.errors.ConnectionRefused("Device refused to connect");
@@ -438,8 +469,13 @@ export class BluetoothRemoteGATTServer extends EventTarget {
 
   /** Disconnect from this device. */
   disconnect(): void {
+    if (!this.#connected) {
+      return;
+    }
     simpleble_peripheral_disconnect(this.#peripheral);
+    simpleble_peripheral_release_handle(this.#peripheral);
     this.#setConnected(false);
+    this.#initialized = false;
   }
 
   /** Returns the service for a UUID. */
@@ -488,7 +524,6 @@ export class BluetoothRemoteGATTServer extends EventTarget {
  * See also: {@link https://developer.mozilla.org/en-US/docs/Web/API/BluetoothDevice BluetoothDevice}
  */
 export class BluetoothDevice extends EventTarget {
-  #peripheral: Peripheral;
   #gatt: BluetoothRemoteGATTServer;
   #manufacturerData: BluetoothManufacturerDataMap;
 
@@ -509,17 +544,23 @@ export class BluetoothDevice extends EventTarget {
 
   /** @hidden */
   constructor(
+    adapter: Adapter,
+    index: number,
     peripheral: Peripheral,
     id: string,
     name: string,
     manufacturerData: BluetoothManufacturerDataMap,
   ) {
     super();
-    this.#peripheral = peripheral;
     this.id = id;
     this.name = name;
     this.#manufacturerData = manufacturerData;
-    this.#gatt = new BluetoothRemoteGATTServer(this, this.#peripheral);
+    this.#gatt = new BluetoothRemoteGATTServer(
+      adapter,
+      index,
+      this,
+      peripheral,
+    );
   }
 
   /** This unstable specification is not implemented yet. */
