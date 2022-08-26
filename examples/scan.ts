@@ -1,8 +1,11 @@
 import { Bluetooth } from "../mod.ts";
 import type { RequestDeviceInfo } from "../mod.ts";
 
-// CHANGE THIS!
-const DEVICE_NAME = "HUB";
+const DEVICE_NAME = prompt("Please enter a device name:")!;
+if (!DEVICE_NAME) {
+  console.error("Invalid device name");
+  Deno.exit(1);
+}
 
 function deviceFilter(deviceInfo: RequestDeviceInfo): boolean {
   if (deviceInfo.name.includes(DEVICE_NAME)) {
