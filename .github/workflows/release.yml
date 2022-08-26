@@ -32,7 +32,7 @@ jobs:
         run: deno run -A find.ts
 
       - name: File
-        run: build/lib/libsimpleble-c.so
+        run: file build/lib/libsimpleble-c.so
 
       - name: Upload
         uses: softprops/action-gh-release@v1
@@ -70,7 +70,7 @@ jobs:
         run: deno run -A find.ts
 
       - name: File
-        run: build/lib/libsimpleble-c.dylib
+        run: file build/lib/libsimpleble-c.dylib
 
       - name: Upload
         uses: softprops/action-gh-release@v1

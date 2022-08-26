@@ -78,7 +78,7 @@ jobs:
         run: deno run -A find.ts
 
       - name: File
-        run: build/lib/libsimpleble-c.dylib
+        run: file build/lib/libsimpleble-c.dylib
 
   build-windows:
     runs-on: windows-2019
