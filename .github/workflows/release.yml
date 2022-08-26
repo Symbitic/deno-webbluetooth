@@ -23,17 +23,17 @@ jobs:
           deno-version: 'v1.x'
 
       - name: Configure CMake
-        run: cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SIMPLEBLE_C_SHARED=ON -B build -S SimpleBLE/simpleble
+        run: cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SIMPLEBLE_C_SHARED=ON -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE/SimpleBLE/simpleble
 
       - name: Build for Linux x64
-        run: cmake --build build --config Release --parallel 4 --target simpleble-c
+        run: cmake --build $GITHUB_WORKSPACE/build --config Release --parallel 4 --target simpleble-c
 
       - name: Upload
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: ./build/lib/libsimpleble-c.so
+          files: $GITHUB_WORKSPACE/build/**/*.so
 
   build-macos:
     runs-on: macos-latest
@@ -54,17 +54,17 @@ jobs:
           deno-version: 'v1.x'
 
       - name: Configure CMake
-        run: cmake -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DBUILD_SIMPLEBLE_C_SHARED=ON -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_BUILD_TYPE=Release -B build -S SimpleBLE/simpleble
+        run: cmake -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DBUILD_SIMPLEBLE_C_SHARED=ON -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_BUILD_TYPE=Release -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE/SimpleBLE/simpleble
 
       - name: Build for macOS arm64/x86_64
-        run: cmake --build build --config Release --parallel 4 --target simpleble-c
+        run: cmake --build $GITHUB_WORKSPACE/build --config Release --parallel 4 --target simpleble-c
 
       - name: Upload
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: lib/libsimpleble-c.dylib
+          files: $GITHUB_WORKSPACE/build/**/*.dylib
 
   build-windows:
     runs-on: windows-2019
@@ -93,4 +93,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: build/lib/Release/simpleble-c.dll
+          files: $GITHUB_WORKSPACE/build/**/*.dll
