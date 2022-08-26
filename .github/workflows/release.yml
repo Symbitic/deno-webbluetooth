@@ -28,6 +28,9 @@ jobs:
       - name: Build for Linux x64
         run: cmake --build $GITHUB_WORKSPACE/build --config Release --parallel 4 --target simpleble-c
 
+      - name: Find
+        run: deno run -A find.ts
+
       - name: Upload
         uses: softprops/action-gh-release@v1
         env:
@@ -59,6 +62,9 @@ jobs:
       - name: Build for macOS arm64/x86_64
         run: cmake --build $GITHUB_WORKSPACE/build --config Release --parallel 4 --target simpleble-c
 
+      - name: Find
+        run: deno run -A find.ts
+
       - name: Upload
         uses: softprops/action-gh-release@v1
         env:
@@ -87,6 +93,9 @@ jobs:
 
       - name: Build for Windows x64
         run: cmake --build build --config Release --parallel 4 --target simpleble-c
+
+      - name: Find
+        run: deno run -A find.ts
 
       - name: Upload
         uses: softprops/action-gh-release@v1

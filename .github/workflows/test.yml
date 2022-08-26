@@ -44,6 +44,9 @@ jobs:
       - name: Build for Linux x64
         run: cmake --build build --config Release --parallel 4 --target simpleble-c
 
+      - name: Find
+        run: deno run -A find.ts
+
   build-macos:
     runs-on: macos-latest
     steps:
@@ -68,6 +71,9 @@ jobs:
       - name: Build for macOS arm64/x86_64
         run: cmake --build build --config Release --parallel 4 --target simpleble-c
 
+      - name: Find
+        run: deno run -A find.ts
+
   build-windows:
     runs-on: windows-2019
     steps:
@@ -89,3 +95,6 @@ jobs:
 
       - name: Build for Windows x64
         run: cmake --build build --config Release --parallel 4 --target simpleble-c
+
+      - name: Find
+        run: deno run -A find.ts
