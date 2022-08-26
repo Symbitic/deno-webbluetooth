@@ -53,9 +53,9 @@ jobs:
           submodules: recursive
 
       - name: Setup CMake
-        uses: jwlawson/actions-setup-cmake@v1.4
+        uses: jwlawson/actions-setup-cmake@v1.12
         with:
-          cmake-version: '3.16.x'
+          cmake-version: '3.21.x'
 
       - name: Setup Deno
         uses: denoland/setup-deno@main
