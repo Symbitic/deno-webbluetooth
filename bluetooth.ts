@@ -134,11 +134,6 @@ export class Bluetooth extends EventTarget {
     return Promise.resolve(this.#devices);
   }
 
-  /** Release all Bluetooth resources. */
-  shutdown(): void {
-    simpleble_adapter_release_handle(this.#adapter);
-  }
-
   /**
    * Scan for Bluetooth devices indefinitely.
    *
