@@ -71,6 +71,13 @@ try {
 
   const characteristic = characteristics[characteristicNum];
 
+  characteristic.addEventListener("notify", () => {
+    console.log("NOTIFY");
+  });
+  characteristic.addEventListener("indicate", () => {
+    console.log("INDICATE");
+  });
+
   console.log("Starting notifications");
   await characteristic.startNotifications();
 

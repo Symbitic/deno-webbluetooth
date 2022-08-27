@@ -128,15 +128,6 @@ export class BluetoothRemoteGATTCharacteristic extends EventTarget {
     this.#uuid = characteristic.uuid;
   }
 
-  /** Register for the `characteristicvaluechanged` event. */
-  addEventListener(
-    type: "characteristicvaluechanged",
-    listener: (this: this, ev: Event) => any,
-    useCapture?: boolean,
-  ): void {
-    super.addEventListener(type, listener, useCapture);
-  }
-
   /** The {@link BluetoothRemoteGATTService} this characteristic belongs to. */
   get service(): BluetoothRemoteGATTService {
     return this.#service;
@@ -278,7 +269,7 @@ export class BluetoothRemoteGATTCharacteristic extends EventTarget {
       this.service.uuid,
       this.uuid,
       (_service: string, _char: string, data: Uint8Array) => {
-        console.log("NOTIFY");
+        this.dispatchEvent(new Event("notify"));
         const arrayBuffer = data.buffer;
         const view = new DataView(arrayBuffer);
         this.#setValue(view, true);
@@ -289,7 +280,7 @@ export class BluetoothRemoteGATTCharacteristic extends EventTarget {
       this.service.uuid,
       this.uuid,
       (_service: string, _char: string, data: Uint8Array) => {
-        console.log("INDICATE");
+        this.dispatchEvent(new Event("indicate"));
         const arrayBuffer = data.buffer;
         const view = new DataView(arrayBuffer);
         this.#setValue(view, true);
@@ -337,15 +328,6 @@ export class BluetoothRemoteGATTService extends EventTarget {
 
     this.dispatchEvent(new Event("serviceadded"));
     this.device.dispatchEvent(new Event("serviceadded"));
-  }
-
-  /** Register for the `serviceadded` event. */
-  addEventListener(
-    type: "serviceadded",
-    listener: (this: this, ev: Event) => any,
-    useCapture?: boolean,
-  ): void {
-    super.addEventListener(type, listener, useCapture);
   }
 
   /** The UUID of this service. */
