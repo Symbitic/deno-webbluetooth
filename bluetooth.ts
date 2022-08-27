@@ -1,8 +1,11 @@
 import { delay } from "./deps.ts";
 import { BluetoothDevice } from "./gatt.ts";
 import {
+  simpleble_adapter_address,
   simpleble_adapter_get_count,
   simpleble_adapter_get_handle,
+  simpleble_adapter_identifier,
+  simpleble_adapter_release_handle,
   simpleble_adapter_scan_get_results_count,
   simpleble_adapter_scan_get_results_handle,
   simpleble_adapter_scan_start,
@@ -60,10 +63,19 @@ function checkManufacturerData(
   return false;
 }
 
+/** A Bluetooth adapter. */
+export interface BluetoothAdapter {
+  /** The name of this adapter. */
+  identifier: string;
+  /** The unique address of this adapter. */
+  address: string;
+}
+
 /** Interface for creating {@link BluetoothDevice} objects. */
 export class Bluetooth extends EventTarget {
   #adapter: Adapter;
   #devices: BluetoothDevice[];
+  #adapters: BluetoothAdapter[] = [];
 
   /** Since Deno cannot navigate by Bluetooth URL, this will never be present. */
   readonly referringDevice?: BluetoothDevice = undefined;
@@ -80,9 +92,35 @@ export class Bluetooth extends EventTarget {
       throw new Deno.errors.NotFound("requestDevice error: no adapters found");
     }
 
+    for (let i = 0; i < adaptersCount; i++) {
+      const handle = simpleble_adapter_get_handle(i);
+      const identifier = simpleble_adapter_identifier(handle);
+      const address = simpleble_adapter_address(handle);
+      this.#adapters.push({
+        identifier,
+        address,
+      });
+      if (i === 0) {
+        this.#adapter = handle;
+      } else {
+        simpleble_adapter_release_handle(handle);
+      }
+    }
+
     this.#adapter = simpleble_adapter_get_handle(0);
 
     this.dispatchEvent(new Event("availabilitychanged"));
+  }
+
+  /** Set a Bluetooth adapter to use for scanning. */
+  setAdapter(index: number): void {
+    simpleble_adapter_release_handle(this.#adapter);
+    this.#adapter = simpleble_adapter_get_handle(index);
+  }
+
+  /** Returns a list of valid Bluetooth adapters. */
+  getAdapters(): Promise<BluetoothAdapter[]> {
+    return Promise.resolve(this.#adapters);
   }
 
   /** Determines if a working Bluetooth adapter is usable. */
@@ -94,6 +132,11 @@ export class Bluetooth extends EventTarget {
   /** Returns a list of every device requested thus far. */
   getDevices(): Promise<BluetoothDevice[]> {
     return Promise.resolve(this.#devices);
+  }
+
+  /** Release all Bluetooth resources. */
+  shutdown(): void {
+    simpleble_adapter_release_handle(this.#adapter);
   }
 
   /**
