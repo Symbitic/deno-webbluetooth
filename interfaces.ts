@@ -52,7 +52,9 @@ export interface RequestDeviceInfo {
 export type RequestDeviceOptions = {
   filters: BluetoothLEScanFilter[];
   timeout?: number;
+  signal?: AbortSignal;
 } | {
   filter: (info: RequestDeviceInfo) => boolean;
   timeout?: number;
+  signal?: AbortSignal;
 };

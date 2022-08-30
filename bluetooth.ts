@@ -1,4 +1,4 @@
-import { delay } from "./deps.ts";
+import { abortable, delay } from "./deps.ts";
 import { BluetoothDevice } from "./gatt.ts";
 import {
   simpleble_adapter_address,
@@ -144,16 +144,28 @@ export class Bluetooth extends EventTarget {
     options: RequestDeviceOptions,
   ): AsyncIterableIterator<BluetoothDevice> {
     const timeout = options.timeout ?? 200;
+    const signal = options.signal;
     const ids: string[] = [];
     const { filter, filters } = options as any;
 
     if (!filters && !filter) {
       throw new TypeError("filter or filters must be given");
+    } else if (signal?.aborted) {
+      throw new DOMException("Operation was canceled");
     }
+
+    //const result = await abortable(p, c.signal);
+
 
     const filterCb = this.#createFilter(options);
 
-    while (true) {
+    let done = false;
+
+    options.signal?.addEventListener('abort', (_e) => {
+      done = false;
+    }, { once: true });
+
+    while (!done) {
       simpleble_adapter_scan_start(this.#adapter);
       await delay(timeout);
       simpleble_adapter_scan_stop(this.#adapter);
@@ -308,7 +320,13 @@ export class Bluetooth extends EventTarget {
   async requestDevice(
     options: RequestDeviceOptions,
   ): Promise<BluetoothDevice> {
-    const devices = await this.#request(options, true);
+    let devices: BluetoothDevice[];
+    const p = this.#request(options, true);
+    if (options.signal) {
+      devices = await abortable(p, options.signal);
+    } else {
+      devices = await p;
+    }
 
     if (!devices.length) {
       throw new Deno.errors.NotFound("requestDevice error: no devices found");
@@ -327,7 +345,13 @@ export class Bluetooth extends EventTarget {
   async requestDevices(
     options: RequestDeviceOptions,
   ): Promise<BluetoothDevice[]> {
-    const devices = await this.#request(options, true);
+    let devices: BluetoothDevice[];
+    const p = this.#request(options, true);
+    if (options.signal) {
+      devices = await abortable(p, options.signal);
+    } else {
+      devices = await p;
+    }
 
     if (!devices.length) {
       throw new Deno.errors.NotFound("requestDevices error: no devices found");
