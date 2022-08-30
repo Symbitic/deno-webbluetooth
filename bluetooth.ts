@@ -156,12 +156,11 @@ export class Bluetooth extends EventTarget {
 
     //const result = await abortable(p, c.signal);
 
-
     const filterCb = this.#createFilter(options);
 
     let done = false;
 
-    options.signal?.addEventListener('abort', (_e) => {
+    options.signal?.addEventListener("abort", (_e) => {
       done = false;
     }, { once: true });
 
